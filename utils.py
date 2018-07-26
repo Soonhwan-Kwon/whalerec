@@ -13,6 +13,20 @@ from scipy.ndimage import affine_transform
 
 from PIL import Image as pil_image
 from math import sqrt
+import pickle
+
+
+def serialize(obj, filename):
+    with open(filename, 'wb') as file:
+        pickle.dump(obj, file)
+
+
+def deserialize(filename):
+    if isfile(filename):
+        with open(filename, 'rb') as file:
+            return pickle.load(file)
+    else:
+        return None
 
 
 def build_transform(rotation, shear, height_zoom, width_zoom, height_shift, width_shift):
@@ -41,7 +55,7 @@ def expand_path(datadir, p):
     return p
 
 
-def read_cropped_image(datadir, h2p, p2size, p2bb, rotate, p, augment):
+def read_cropped_image(globals, p, augment):
     """
     @param p : the name of the picture to read
     @param augment: True/False if data augmentation should be performed, True for training, False for validation
@@ -51,12 +65,12 @@ def read_cropped_image(datadir, h2p, p2size, p2bb, rotate, p, augment):
     anisotropy = 2.15  # The horizontal compression ratio
 
     # If an image id was given, convert to filename
-    if p in h2p:
-        p = h2p[p]
-    size_x, size_y = p2size[p]
+    if p in globals.h2p:
+        p = globals.h2p[p]
+    size_x, size_y = globals.p2size[p]
 
     # Determine the region of the original image we want to capture based on the bounding box.
-    if p2bb is None or p not in p2size.keys():
+    if globals.p2bb is None or p not in globals.p2size.keys():
         crop_margin = 0.0
         x0 = 0
         y0 = 0
@@ -64,8 +78,8 @@ def read_cropped_image(datadir, h2p, p2size, p2bb, rotate, p, augment):
         y1 = size_y
     else:
         crop_margin = 0.05  # The margin added around the bounding box to compensate for bounding box inaccuracy
-        x0, y0, x1, y1 = p2bb[p]
-    if p in rotate:
+        x0, y0, x1, y1 = globals.p2bb[p]
+    if p in globals.rotate:
         x0, y0, x1, y1 = size_x - x1, size_y - y1, size_x - x0, size_y - y0
     dx = x1 - x0
     dy = y1 - y0
@@ -107,7 +121,7 @@ def read_cropped_image(datadir, h2p, p2size, p2bb, rotate, p, augment):
     trans = np.dot(np.array([[1, 0, 0.5 * (y1 + y0)], [0, 1, 0.5 * (x1 + x0)], [0, 0, 1]]), trans)
 
     # Read the image, transform to black and white and comvert to numpy array
-    img = read_raw_image(datadir, rotate, p).convert('L')
+    img = read_raw_image(globals.datadir, globals.rotate, p).convert('L')
     img = img_to_array(img)
 
     # Apply affine transformation
