@@ -28,20 +28,6 @@ parser.add_argument('-d', '--datadir', dest='datadir')
 args = parser.parse_args()
 
 
-def read_for_training(h2p, p2size, p2bb, rotate, p):
-    """
-    Read and preprocess an image with data augmentation (random transform).
-    """
-    return utils.read_cropped_image(args.datadir, h2p, p2size, p2bb, rotate, p, True)
-
-
-def read_for_validation(h2p, p2size, p2bb, rotate, p):
-    """
-    Read and preprocess an image without data augmentation (use for testing).
-    """
-    return utils.read_cropped_image(args.datadir, h2p, p2size, p2bb, rotate, p, False)
-
-
 # 1 =================================================
 
 csvFile = args.datadir + "/train_test.csv" if args.test else args.datadir + "/train.csv"
@@ -55,6 +41,7 @@ join = list(tagged.keys()) + submit
 # 2 =================================================
 
 p2size = {}
+
 for p in tqdm(join):
     size = pil_image.open(utils.expand_path(args.datadir, p)).size
     p2size[p] = size
@@ -144,11 +131,11 @@ p2bb = None
 
 # Show an example of a duplicate image (from training of test set)
 p = list(tagged.keys())[31]
-print p
+print p, p2size[p]
 imgs = [
     utils.read_raw_image(args.datadir, rotate, p),
-    array_to_img(read_for_validation(h2p, p2size, p2bb, rotate, p)),
-    array_to_img(read_for_training(h2p, p2size, p2bb, rotate, p))
+    array_to_img(utils.read_cropped_image(args.datadir, h2p, p2size, p2bb, rotate, p, False)),
+    array_to_img(utils.read_cropped_image(args.datadir, h2p, p2size, p2bb, rotate, p, True))
 ]
 print imgs
 debug.show_whale(imgs, per_row=3)

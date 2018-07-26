@@ -44,12 +44,11 @@ def expand_path(datadir, p):
 def read_cropped_image(datadir, h2p, p2size, p2bb, rotate, p, augment):
     """
     @param p : the name of the picture to read
-    @param augment: True/False if data augmentation should be performed
+    @param augment: True/False if data augmentation should be performed, True for training, False for validation
     @return a numpy array with the transformed image
     """
     img_shape = (384, 384, 1)  # The image shape used by the model
     anisotropy = 2.15  # The horizontal compression ratio
-    crop_margin = 0.05  # The margin added around the bounding box to compensate for bounding box inaccuracy
 
     # If an image id was given, convert to filename
     if p in h2p:
@@ -57,11 +56,14 @@ def read_cropped_image(datadir, h2p, p2size, p2bb, rotate, p, augment):
     size_x, size_y = p2size[p]
 
     # Determine the region of the original image we want to capture based on the bounding box.
-    if p2bb is None:
+    if p2bb is None or p not in p2size.keys():
+        crop_margin = 0.0
         x0 = 0
         y0 = 0
-        x1, y1 = p2size[p]
+        x1 = size_x
+        y1 = size_y
     else:
+        crop_margin = 0.05  # The margin added around the bounding box to compensate for bounding box inaccuracy
         x0, y0, x1, y1 = p2bb[p]
     if p in rotate:
         x0, y0, x1, y1 = size_x - x1, size_y - y1, size_x - x0, size_y - y0

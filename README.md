@@ -17,6 +17,10 @@ which also installs numpy.
     pip install --user imagehash
     pip install --user argparse
 
+## RUN
+
+    python -W ignore id.py -d ~/tmp/kaggle --test
+
 ## TODO
 
 *   Instead of using the bounding box (p2bb), use instead the entire size of the image. p2size?
