@@ -244,3 +244,39 @@ def prefer(ps, p2size):
             best_p = p
             best_s = s
     return best_p
+
+
+def h2ws(p2h, tagged):
+    h2ws = {}
+    new_whale = 'new_whale'
+    for p, w in tagged.items():
+        if w != new_whale:  # Use only identified whales
+            h = p2h[p]
+            if h not in h2ws:
+                h2ws[h] = []
+            if w not in h2ws[h]:
+                h2ws[h].append(w)
+    for h, ws in h2ws.items():
+        if len(ws) > 1:
+            h2ws[h] = sorted(ws)
+    # print len(h2ws)
+    return h2ws
+
+
+def w2hs(globals):
+    w2hs = {}
+    for h, ws in globals.h2ws.items():
+        if len(ws) == 1:  # Use only unambiguous pictures
+            if globals.exclude is not None and globals.h2p[h] in globals.exclude:
+                print "Skipping", h  # Skip excluded images
+            else:
+                w = ws[0]
+                if w not in w2hs:
+                    w2hs[w] = []
+                if h not in w2hs[w]:
+                    w2hs[w].append(h)
+    for w, hs in w2hs.items():
+        if len(hs) > 1:
+            w2hs[w] = sorted(hs)
+    # print len(w2hs)
+    return w2hs

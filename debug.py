@@ -36,3 +36,15 @@ def show_images(globals, p):
         array_to_img(utils.read_cropped_image(globals, p, True))
     ]
     show_whale(imgs, per_row=3)
+
+
+def show_results(a, b):
+    # First pair is for matching whale
+    imgs = [array_to_img(a[0]), array_to_img(b[0])]
+    show_whale(imgs, per_row=2)
+
+    # 23 =========================================================
+
+    # Second pair is for different whales
+    imgs = [array_to_img(a[1]), array_to_img(b[1])]
+    show_whale(imgs, per_row=2)

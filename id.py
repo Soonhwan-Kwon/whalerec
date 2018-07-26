@@ -1,9 +1,12 @@
 import sys
 import platform
+import argparse
+import random
+
 import utils
 import debug
 import model
-import argparse
+from train import TrainingData
 
 from imagehash import phash
 from pandas import read_csv
@@ -13,6 +16,8 @@ from PIL import Image as pil_image
 #
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
+
+import numpy as np
 
 
 parser = argparse.ArgumentParser()
@@ -42,8 +47,10 @@ globals.rotate = []
 # If we want to include bounding boxes for the images (Martin's method to obtain them was manual)
 # then we can read them in here. I'm going to ignore them for now and assume that we are going to try
 # and use closely cropped images.
+# Similarly not setting any excluded images
 #
 globals.p2bb = None
+globals.exclude = None
 
 # 1 =================================================
 
@@ -90,9 +97,62 @@ for h, ps in globals.h2ps.items():
 if args.debug:
     debug.show_images(globals, list(tagged.keys())[31])  # Show sample image
 
-
 # 11 =========================================================
 
 model, branch_model, head_model = model.build(globals.img_shape, 64e-5, 0)
 # head_model.summary()
 # branch_model.summary()
+
+# 17 =========================================================
+
+globals.h2ws = utils.h2ws(globals.p2h, tagged)
+
+# 18 =========================================================
+
+globals.w2hs = utils.w2hs(globals)
+
+# 19 =========================================================
+
+# Find the list of training images, keep only whales with at least two images.
+train = []  # A list of training image ids
+for hs in globals.w2hs.values():
+    if len(hs) > 1:
+        train += hs
+random.shuffle(train)
+train_set = set(train)
+
+globals.train = train
+
+w2ts = {}  # Associate the image ids from train to each whale id.
+for w, hs in globals.w2hs.items():
+    for h in hs:
+        if h in train_set:
+            if w not in w2ts:
+                w2ts[w] = []
+            if h not in w2ts[w]:
+                w2ts[w].append(h)
+for w, ts in w2ts.items():
+    w2ts[w] = np.array(ts)
+
+globals.w2ts = w2ts
+
+t2i = {}  # The position in train of each training image id
+for i, t in enumerate(train):
+    t2i[t] = i
+
+globals.t2i = t2i
+
+print len(train), len(w2ts)
+
+if args.debug:
+
+    # 21 =========================================================
+
+    # Test on a batch of 32 with random costs.
+    score = np.random.random_sample(size=(len(train), len(train)))
+    data = TrainingData(globals, score)
+    (a, b), c = data[0]
+    print a.shape, b.shape, c.shape
+
+    # 22, 23 =========================================================
+    debug.show_results(a, b)

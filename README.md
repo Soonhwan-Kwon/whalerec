@@ -17,6 +17,11 @@ which also installs numpy.
     pip install --user imagehash
     pip install --user argparse
 
+    #
+    # There is a built-in slower alternative if this install causes issues.
+    #
+    pip install --user lap
+
 ## RUN
 
     python -W ignore id.py -d ~/tmp/kaggle --test
