@@ -20,18 +20,18 @@ def show_whale(imgs, per_row=2):
     plt.show()
 
 
-def show_similar_image_example(datadir, h2ps):
-    for h, ps in h2ps.items():
+def show_similar_image_example(globals):
+    for h, ps in globals.h2ps.items():
         if len(ps) > 2:
             print('Images:', ps)
-            imgs = [pil_image.open(utils.expand_path(datadir, p)) for p in ps]
+            imgs = [pil_image.open(globals.filename(p)) for p in ps]
             show_whale(imgs, per_row=len(ps))
             break
 
 
 def show_images(globals, p):
     imgs = [
-        utils.read_raw_image(globals.datadir, globals.rotate, p),
+        utils.read_raw_image(globals, p),
         array_to_img(utils.read_cropped_image(globals, p, False)),
         array_to_img(utils.read_cropped_image(globals, p, True))
     ]

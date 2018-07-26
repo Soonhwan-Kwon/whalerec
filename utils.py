@@ -16,6 +16,72 @@ from math import sqrt
 import pickle
 
 
+def p2size(globals, images):
+    p2size = deserialize('p2size.pickle')
+    if p2size is None:
+        p2size = {}
+
+        for imagename in tqdm(images):
+            size = pil_image.open(globals.filename(imagename)).size
+            p2size[imagename] = size
+
+        serialize(p2size, 'p2size.pickle')
+    # print len(p2size), list(p2size.items())[:5]
+    return p2size
+
+
+def p2h(globals, images):
+    p2h = utils.deserialize('p2h.pickle')
+    if p2h is None:
+        # Compute phash for each image in the training and test set.
+        p2h = {}
+        for imagename in tqdm(images):
+            img = pil_image.open(globals.filename(p))
+            h = phash(img)
+            globals.p2h[imagename] = h
+
+        h2ps = utils.unique_hashes(p2h)
+
+        # Find all distinct phash values
+        hs = list(h2ps.keys())
+
+        # If the images are close enough, associate the two phash values (this is the slow part: n^2 algorithm)
+        h2h = {}
+        for i, h1 in enumerate(tqdm(hs)):
+            for h2 in hs[:i]:
+                if h1 - h2 <= 6 and utils.match(globals.datadir, h2ps, h1, h2):
+                    s1 = str(h1)
+                    s2 = str(h2)
+                    if s1 < s2:
+                        s1, s2 = s2, s1
+                    h2h[s1] = s2
+
+        # Group together images with equivalent phash, and replace by string format of phash (faster and more readable)
+        for p, h in p2h.items():
+            h = str(h)
+            if h in h2h:
+                h = h2h[h]
+            p2h[p] = h
+
+        utils.serialize(p2h, 'p2h.pickle')
+
+    # print len(globals.p2h), list(globals.p2h.items())[:5]
+    return p2h
+
+
+def unique_hashes(p2h):
+    """
+    Find all images associated with a given phash value.
+    """
+    h2ps = {}
+    for p, h in p2h.items():
+        if h not in h2ps:
+            h2ps[h] = []
+        if p not in h2ps[h]:
+            h2ps[h].append(p)
+    return h2ps
+
+
 def serialize(obj, filename):
     with open(filename, 'wb') as file:
         pickle.dump(obj, file)
@@ -61,7 +127,6 @@ def read_cropped_image(globals, p, augment):
     @param augment: True/False if data augmentation should be performed, True for training, False for validation
     @return a numpy array with the transformed image
     """
-    img_shape = (384, 384, 1)  # The image shape used by the model
     anisotropy = 2.15  # The horizontal compression ratio
 
     # If an image id was given, convert to filename
@@ -107,8 +172,8 @@ def read_cropped_image(globals, p, augment):
         x1 += dx
 
     # Generate the transformation matrix
-    trans = np.array([[1, 0, -0.5 * img_shape[0]], [0, 1, -0.5 * img_shape[1]], [0, 0, 1]])
-    trans = np.dot(np.array([[(y1 - y0) / img_shape[0], 0, 0], [0, (x1 - x0) / img_shape[1], 0], [0, 0, 1]]), trans)
+    trans = np.array([[1, 0, -0.5 * globals.img_shape[0]], [0, 1, -0.5 * globals.img_shape[1]], [0, 0, 1]])
+    trans = np.dot(np.array([[(y1 - y0) / globals.img_shape[0], 0, 0], [0, (x1 - x0) / globals.img_shape[1], 0], [0, 0, 1]]), trans)
     if augment:
         trans = np.dot(build_transform(
             random.uniform(-5, 5),
@@ -121,15 +186,15 @@ def read_cropped_image(globals, p, augment):
     trans = np.dot(np.array([[1, 0, 0.5 * (y1 + y0)], [0, 1, 0.5 * (x1 + x0)], [0, 0, 1]]), trans)
 
     # Read the image, transform to black and white and comvert to numpy array
-    img = read_raw_image(globals.datadir, globals.rotate, p).convert('L')
+    img = read_raw_image(globals, p).convert('L')
     img = img_to_array(img)
 
     # Apply affine transformation
     matrix = trans[:2, :2]
     offset = trans[:2, 2]
     img = img.reshape(img.shape[:-1])
-    img = affine_transform(img, matrix, offset, output_shape=img_shape[:-1], order=1, mode='constant', cval=np.average(img))
-    img = img.reshape(img_shape)
+    img = affine_transform(img, matrix, offset, output_shape=globals.img_shape[:-1], order=1, mode='constant', cval=np.average(img))
+    img = img.reshape(globals.img_shape)
 
     # Normalize to zero mean and unit variance
     img -= np.mean(img, keepdims=True)
@@ -137,9 +202,9 @@ def read_cropped_image(globals, p, augment):
     return img
 
 
-def read_raw_image(datadir, rotate, p):
-    img = pil_image.open(expand_path(datadir, p))
-    if p in rotate:
+def read_raw_image(globals, p):
+    img = pil_image.open(globals.filename(p))
+    if p in globals.rotate:
         img = img.rotate(180)
     return img
 

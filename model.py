@@ -3,6 +3,7 @@ from keras.optimizers import Adam
 from keras.engine.topology import Input
 from keras.layers import Activation, Add, BatchNormalization, Concatenate, Conv2D, Dense, Flatten, GlobalMaxPooling2D, Lambda, MaxPooling2D, Reshape
 from keras.models import Model
+from keras import backend as K
 
 
 def subblock(x, filter, **kwargs):
@@ -18,7 +19,7 @@ def subblock(x, filter, **kwargs):
     return y
 
 
-def build_model(lr, l2, activation='sigmoid'):
+def build(img_shape, lr, l2, activation='sigmoid'):
 
     ##############
     # BRANCH MODEL
