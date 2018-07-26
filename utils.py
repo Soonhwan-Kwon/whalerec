@@ -31,7 +31,7 @@ def p2size(globals, images):
 
 
 def p2h(globals, images):
-    p2h = utils.deserialize('p2h.pickle')
+    p2h = deserialize('p2h.pickle')
     if p2h is None:
         # Compute phash for each image in the training and test set.
         p2h = {}
@@ -40,7 +40,7 @@ def p2h(globals, images):
             h = phash(img)
             globals.p2h[imagename] = h
 
-        h2ps = utils.unique_hashes(p2h)
+        h2ps = unique_hashes(p2h)
 
         # Find all distinct phash values
         hs = list(h2ps.keys())
@@ -49,7 +49,7 @@ def p2h(globals, images):
         h2h = {}
         for i, h1 in enumerate(tqdm(hs)):
             for h2 in hs[:i]:
-                if h1 - h2 <= 6 and utils.match(globals.datadir, h2ps, h1, h2):
+                if h1 - h2 <= 6 and match(globals.datadir, h2ps, h1, h2):
                     s1 = str(h1)
                     s2 = str(h2)
                     if s1 < s2:
@@ -63,7 +63,7 @@ def p2h(globals, images):
                 h = h2h[h]
             p2h[p] = h
 
-        utils.serialize(p2h, 'p2h.pickle')
+        serialize(p2h, 'p2h.pickle')
 
     # print len(globals.p2h), list(globals.p2h.items())[:5]
     return p2h
