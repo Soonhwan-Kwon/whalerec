@@ -37,6 +37,8 @@ class Globals(object):
 
 globals = Globals(args.datadir)
 globals.img_shape = (384, 384, 1)  # The image shape used by the model
+globals.histories = []
+globals.steps = 0
 
 #
 # Just going to set this to an empty array. Martin determined which should be rotated manually by adding
@@ -99,7 +101,7 @@ if args.debug:
 
 # 11 =========================================================
 
-model, branch_model, head_model = model.build(globals.img_shape, 64e-5, 0)
+globals.model, globals.branch_model, globals.head_model = model.build(globals.img_shape, 64e-5, 0)
 # head_model.summary()
 # branch_model.summary()
 
@@ -119,30 +121,11 @@ for hs in globals.w2hs.values():
     if len(hs) > 1:
         train += hs
 random.shuffle(train)
-train_set = set(train)
 
 globals.train = train
+globals.train_set = set(train)
 
-w2ts = {}  # Associate the image ids from train to each whale id.
-for w, hs in globals.w2hs.items():
-    for h in hs:
-        if h in train_set:
-            if w not in w2ts:
-                w2ts[w] = []
-            if h not in w2ts[w]:
-                w2ts[w].append(h)
-for w, ts in w2ts.items():
-    w2ts[w] = np.array(ts)
-
-globals.w2ts = w2ts
-
-t2i = {}  # The position in train of each training image id
-for i, t in enumerate(train):
-    t2i[t] = i
-
-globals.t2i = t2i
-
-print len(train), len(w2ts)
+utils.map_train(globals)
 
 if args.debug:
 
@@ -156,3 +139,5 @@ if args.debug:
 
     # 22, 23 =========================================================
     debug.show_results(a, b)
+
+model.make_standard(globals)

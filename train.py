@@ -71,6 +71,9 @@ class TrainingData(Sequence):
             tmp = []
             batch = 512
             # EDITED: Added self in front of score for this and the next line. The others were already self? Correct?
+            # Could go back to using the global one which I guess it was using? Should be the same because the shape
+            # should be the same BUT I don't think the global is defined when it first hits here. At least in the debug
+            # version.
             for start in range(0, self.score.shape[0], batch):
                 end = min(self.score.shape[0], start + batch)
                 _, x = linear_sum_assignment(self.score[start:end, start:end])

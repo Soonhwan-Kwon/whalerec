@@ -280,3 +280,30 @@ def w2hs(globals):
             w2hs[w] = sorted(hs)
     # print len(w2hs)
     return w2hs
+
+
+def map_train(globals):
+    """
+    Couldn't figure out what to call this
+    """
+
+    w2ts = {}  # Associate the image ids from train to each whale id.
+    for w, hs in globals.w2hs.items():
+        for h in hs:
+            if h in globals.train_set:
+                if w not in w2ts:
+                    w2ts[w] = []
+                if h not in w2ts[w]:
+                    w2ts[w].append(h)
+    for w, ts in w2ts.items():
+        w2ts[w] = np.array(ts)
+
+    globals.w2ts = w2ts
+
+    t2i = {}  # The position in train of each training image id
+    for i, t in enumerate(globals.train):
+        t2i[t] = i
+
+    globals.t2i = t2i
+
+    print len(globals.train), len(globals.w2ts)

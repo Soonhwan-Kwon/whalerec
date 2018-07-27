@@ -28,7 +28,4 @@ which also installs numpy.
 
 ## TODO
 
-*   Instead of using the bounding box (p2bb), use instead the entire size of the image. p2size?
-    OK, done, BUT why are the resized images cropped badly? The tips are cut off.
-
--   Check into github!
+*   Check with Martin about the global score thing

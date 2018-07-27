@@ -1,9 +1,80 @@
+import utils
+import random
+
 from keras import regularizers
 from keras.optimizers import Adam
 from keras.engine.topology import Input
 from keras.layers import Activation, Add, BatchNormalization, Concatenate, Conv2D, Dense, Flatten, GlobalMaxPooling2D, Lambda, MaxPooling2D, Reshape
 from keras.models import Model
 from keras import backend as K
+from keras.utils import Sequence
+from keras_tqdm import TQDMNotebookCallback
+
+from tqdm import tqdm
+import numpy as np
+
+
+# A Keras generator to evaluate only the BRANCH MODEL
+class FeatureGen(Sequence):
+    def __init__(self, globals, data, batch_size=64, verbose=1):
+        super(FeatureGen, self).__init__()
+
+        self.globals = globals
+        self.data = data
+        self.batch_size = batch_size
+        self.verbose = verbose
+        if self.verbose > 0:
+            self.progress = tqdm(total=len(self), desc='Features')
+
+    def __getitem__(self, index):
+        start = self.batch_size * index
+        size = min(len(self.data) - start, self.batch_size)
+        a = np.zeros((size,) + img_shape, dtype=K.floatx())
+        for i in range(size):
+            a[i, :, :, :] = utils.read_cropped_image(self.globals, self.data[start + i], False)
+        if self.verbose > 0:
+            self.progress.update()
+            if self.progress.n >= len(self):
+                self.progress.close()
+        return a
+
+    def __len__(self):
+        return (len(self.data) + self.batch_size - 1) // self.batch_size
+
+
+# A Keras generator to evaluate on the HEAD MODEL on features already pre-computed.
+# It computes only the upper triangular matrix of the cost matrix if y is None.
+class ScoreGen(Sequence):
+    def __init__(self, x, y=None, batch_size=2048, verbose=1):
+        super(ScoreGen, self).__init__()
+        self.x = x
+        self.y = y
+        self.batch_size = batch_size
+        self.verbose = verbose
+        if y is None:
+            self.y = self.x
+            self.ix, self.iy = np.triu_indices(x.shape[0], 1)
+        else:
+            self.iy, self.ix = np.indices((y.shape[0], x.shape[0]))
+            self.ix = self.ix.reshape((self.ix.size,))
+            self.iy = self.iy.reshape((self.iy.size,))
+        self.subbatch = (len(self.x) + self.batch_size - 1) // self.batch_size
+        if self.verbose > 0:
+            self.progress = tqdm(total=len(self), desc='Scores')
+
+    def __getitem__(self, index):
+        start = index * self.batch_size
+        end = min(start + self.batch_size, len(self.ix))
+        a = self.y[self.iy[start:end], :]
+        b = self.x[self.ix[start:end], :]
+        if self.verbose > 0:
+            self.progress.update()
+            if self.progress.n >= len(self):
+                self.progress.close()
+        return [a, b]
+
+    def __len__(self):
+        return (len(self.ix) + self.batch_size - 1) // self.batch_size
 
 
 def subblock(x, filter, **kwargs):
@@ -100,3 +171,126 @@ def build(img_shape, lr, l2, activation='sigmoid'):
     model.compile(optim, loss='binary_crossentropy', metrics=['binary_crossentropy', 'acc'])
 
     return model, branch_model, head_model
+
+
+def set_lr(model, lr):
+    K.set_value(model.optimizer.lr, float(lr))
+
+
+def get_lr(model):
+    return K.get_value(model.optimizer.lr)
+
+
+def score_reshape(score, x, y=None):
+    """
+    Tranformed the packed matrix 'score' into a square matrix.
+    @param score the packed matrix
+    @param x the first image feature tensor
+    @param y the second image feature tensor if different from x
+    @result the square matrix
+    """
+    if y is None:
+        # When y is None, score is a packed upper triangular matrix.
+        # Unpack, and transpose to form the symmetrical lower triangular matrix.
+        m = np.zeros((x.shape[0], x.shape[0]), dtype=K.floatx())
+        m[np.triu_indices(x.shape[0], 1)] = score.squeeze()
+        m += m.transpose()
+    else:
+        m = np.zeros((y.shape[0], x.shape[0]), dtype=K.floatx())
+        iy, ix = np.indices((y.shape[0], x.shape[0]))
+        ix = ix.reshape((ix.size,))
+        iy = iy.reshape((iy.size,))
+        m[iy, ix] = score.squeeze()
+    return m
+
+
+def compute_score(branch_model, head_model, train, verbose=1):
+    """
+    Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
+    """
+    features = branch_model.predict_generator(FeatureGen(train, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    score = head_model.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    score = score_reshape(score, features)
+    return features, score
+
+
+def make_steps(globals, step, ampl):
+    """
+    Perform training epochs
+    @param step Number of epochs to perform
+    @param ampl the K, the randomized component of the score matrix.
+    """
+    global w2ts, t2i, steps, features, score, histories
+
+    # shuffle the training pictures
+    random.shuffle(globals.train)
+
+    utils.map_train(globals)
+
+    # Compute the match score for each picture pair
+    globals.features, globals.score = compute_score(globals.branch_model, globals.head_model, globals.train)
+
+    # Train the model for 'step' epochs
+    history = model.fit_generator(
+        TrainingData(score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
+        initial_epoch=steps, epochs=steps + step, max_queue_size=12, workers=6, verbose=0,
+        callbacks=[
+            TQDMNotebookCallback(leave_inner=True, metric_format='{value:0.3f}')
+        ]).history
+    globals.steps += step
+
+    # Collect history data
+    history['epochs'] = globals.steps
+    history['ms'] = np.mean(globals.score)
+    history['lr'] = get_lr(globals.model)
+    print(history['epochs'], history['lr'], history['ms'])
+    globals.histories.append(history)
+
+
+def make_standard(globals):
+    model_name = 'standard.model'
+    if isfile(model_name):
+        tmp = keras.models.load_model(model_name)
+        globals.model.set_weights(tmp.get_weights())
+    else:
+        # epoch -> 10
+        make_steps(globals, 10, 1000)
+        ampl = 100.0
+        for _ in range(10):
+            print('noise ampl.  = ', ampl)
+            make_steps(globals, 5, ampl)
+            ampl = max(1.0, 100**-0.1 * ampl)
+        # epoch -> 150
+        for _ in range(18):
+            make_steps(globals, 5, 1.0)
+        # epoch -> 200
+        set_lr(globals.model, 16e-5)
+        for _ in range(10):
+            make_steps(globals, 5, 0.5)
+        # epoch -> 240
+        set_lr(globals.model, 4e-5)
+        for _ in range(8):
+            make_steps(globals, 5, 0.25)
+        # epoch -> 250
+        set_lr(globals.model, 1e-5)
+        for _ in range(2):
+            make_steps(globals, 5, 0.25)
+        # epoch -> 300
+        weights = globals.model.get_weights()
+        globals.model, globals.branch_model, globals.head_model = build_model(64e-5, 0.0002)
+        globals.model.set_weights(weights)
+        for _ in range(10):
+            make_steps(globals, 5, 1.0)
+        # epoch -> 350
+        set_lr(globals.model, 16e-5)
+        for _ in range(10):
+            make_steps(globals, 5, 0.5)
+        # epoch -> 390
+        set_lr(globals.model, 4e-5)
+        for _ in range(8):
+            make_steps(globals, 5, 0.25)
+        # epoch -> 400
+        set_lr(globals.model, 1e-5)
+        for _ in range(2):
+            make_steps(globals, 5, 0.25)
+        model.save(model_name)
