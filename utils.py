@@ -14,6 +14,11 @@ from scipy.ndimage import affine_transform
 from PIL import Image as pil_image
 from math import sqrt
 import pickle
+#
+#  Switch to notebook version of tqdm if using jupyter
+#
+# from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm
 
 
 def p2size(globals, images):

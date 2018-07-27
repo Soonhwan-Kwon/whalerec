@@ -11,11 +11,6 @@ from train import TrainingData
 from imagehash import phash
 from pandas import read_csv
 from PIL import Image as pil_image
-#
-#  Switch to notebook version of tqdm if using jupyter
-#
-# from tqdm import tqdm_notebook as tqdm
-from tqdm import tqdm
 
 import numpy as np
 
@@ -101,6 +96,9 @@ if args.debug:
 
 # 11 =========================================================
 
+#
+# THIS CAN TOTALLY BE MOVED UP THE LINE BEFORE TO JUST BEFORE THE MAKE STANDARD
+#
 globals.model, globals.branch_model, globals.head_model = model.build(globals.img_shape, 64e-5, 0)
 # head_model.summary()
 # branch_model.summary()

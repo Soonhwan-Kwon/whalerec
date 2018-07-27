@@ -1,5 +1,7 @@
-import utils
+from os.path import isfile
 import random
+
+import utils
 
 from keras import regularizers
 from keras.optimizers import Adam
@@ -8,7 +10,7 @@ from keras.layers import Activation, Add, BatchNormalization, Concatenate, Conv2
 from keras.models import Model
 from keras import backend as K
 from keras.utils import Sequence
-from keras_tqdm import TQDMNotebookCallback
+# from keras_tqdm import TQDMNotebookCallback
 
 from tqdm import tqdm
 import numpy as np
@@ -20,6 +22,7 @@ class FeatureGen(Sequence):
         super(FeatureGen, self).__init__()
 
         self.globals = globals
+        print self.globals.img_shape
         self.data = data
         self.batch_size = batch_size
         self.verbose = verbose
@@ -29,7 +32,7 @@ class FeatureGen(Sequence):
     def __getitem__(self, index):
         start = self.batch_size * index
         size = min(len(self.data) - start, self.batch_size)
-        a = np.zeros((size,) + img_shape, dtype=K.floatx())
+        a = np.zeros((size,) + self.globals.img_shape, dtype=K.floatx())
         for i in range(size):
             a[i, :, :, :] = utils.read_cropped_image(self.globals, self.data[start + i], False)
         if self.verbose > 0:
@@ -204,14 +207,15 @@ def score_reshape(score, x, y=None):
     return m
 
 
-def compute_score(branch_model, head_model, train, verbose=1):
+def compute_score(globals, verbose=1):
     """
     Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
     """
-    features = branch_model.predict_generator(FeatureGen(train, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
-    score = head_model.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    features = globals.branch_model.predict_generator(FeatureGen(globals, globals.train, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    score = globals.head_model.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
     score = score_reshape(score, features)
-    return features, score
+    globals.features = features
+    globals.score = score
 
 
 def make_steps(globals, step, ampl):
@@ -228,15 +232,20 @@ def make_steps(globals, step, ampl):
     utils.map_train(globals)
 
     # Compute the match score for each picture pair
-    globals.features, globals.score = compute_score(globals.branch_model, globals.head_model, globals.train)
+    compute_score(globals)
 
     # Train the model for 'step' epochs
+    # history = model.fit_generator(
+    #     TrainingData(globals, score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
+    #     initial_epoch=steps, epochs=steps + step, max_queue_size=12, workers=6, verbose=0,
+    #     callbacks=[
+    #         TQDMNotebookCallback(leave_inner=True, metric_format='{value:0.3f}')
+    #     ]).history
     history = model.fit_generator(
-        TrainingData(score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
-        initial_epoch=steps, epochs=steps + step, max_queue_size=12, workers=6, verbose=0,
-        callbacks=[
-            TQDMNotebookCallback(leave_inner=True, metric_format='{value:0.3f}')
-        ]).history
+        TrainingData(globals, score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
+        initial_epoch=steps, epochs=steps + step, max_queue_size=12, workers=6, verbose=0
+    ).history
+
     globals.steps += step
 
     # Collect history data
