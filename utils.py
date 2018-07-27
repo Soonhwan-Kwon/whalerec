@@ -31,7 +31,7 @@ def p2size(config, images):
             p2size[imagename] = size
 
         serialize(p2size, 'p2size.pickle')
-    # print len(p2size), list(p2size.items())[:5]
+    # print(len(p2size), list(p2size.items())[:5])
     return p2size
 
 
@@ -70,7 +70,7 @@ def p2h(config, images):
 
         serialize(p2h, 'p2h.pickle')
 
-    # print len(config.p2h), list(config.p2h.items())[:5]
+    # print(len(config.p2h), list(config.p2h.items())[:5])
     return p2h
 
 
@@ -264,7 +264,7 @@ def h2ws(p2h, tagged):
     for h, ws in h2ws.items():
         if len(ws) > 1:
             h2ws[h] = sorted(ws)
-    # print len(h2ws)
+    # print(len(h2ws))
     return h2ws
 
 
@@ -273,7 +273,7 @@ def w2hs(config):
     for h, ws in config.h2ws.items():
         if len(ws) == 1:  # Use only unambiguous pictures
             if config.exclude is not None and config.h2p[h] in config.exclude:
-                print "Skipping", h  # Skip excluded images
+                print("Skipping", h)  # Skip excluded images
             else:
                 w = ws[0]
                 if w not in w2hs:
@@ -283,7 +283,7 @@ def w2hs(config):
     for w, hs in w2hs.items():
         if len(hs) > 1:
             w2hs[w] = sorted(hs)
-    # print len(w2hs)
+    # print(len(w2hs))
     return w2hs
 
 
@@ -311,4 +311,4 @@ def map_train(config, data):
 
     config.t2i = t2i
 
-    print len(data.train), len(config.w2ts)
+    print(len(data.train), len(config.w2ts))

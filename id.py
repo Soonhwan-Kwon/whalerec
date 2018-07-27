@@ -57,7 +57,7 @@ submit = [p for _, p, _ in read_csv(csvFile).to_records()]
 
 join = list(tagged.keys()) + submit
 
-# print len(tagged), len(submit), len(join), list(tagged.items())[:5], submit[:5]
+# print(len(tagged), len(submit), len(join), list(tagged.items())[:5], submit[:5])
 
 # 2 =================================================
 
@@ -72,7 +72,7 @@ config.p2h = utils.p2h(config, join)
 config.h2ps = utils.unique_hashes(config.p2h)
 
 # Notice how 25460 images use only 20913 distinct image ids.
-# print len(config.h2ps), list(config.h2ps.items())[:5]
+# print(len(config.h2ps), list(config.h2ps.items())[:5])
 
 # 5 =======================================================
 
@@ -85,7 +85,7 @@ config.h2p = {}
 for h, ps in config.h2ps.items():
     config.h2p[h] = utils.prefer(ps, config.p2size)
 
-# print len(config.h2p), list(config.h2p.items())[:5]
+# print(len(config.h2p), list(config.h2p.items())[:5])
 
 # 10 =========================================================
 
@@ -139,7 +139,7 @@ if args.debug:
     score = np.random.random_sample(size=(len(train), len(train)))
     data = TrainingData(config, train, score)
     (a, b), c = data[0]
-    print a.shape, b.shape, c.shape
+    print(a.shape, b.shape, c.shape)
 
     # 22, 23 =========================================================
     debug.show_results(a, b)

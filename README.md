@@ -22,6 +22,14 @@ which also installs numpy.
     #
     pip install --user lap
 
+    pipenv install pandas
+    pipenv install matplotlib
+    pipenv install keras
+    pipenv install tensorflow
+    pipenv install tqdm
+    pipenv install imagehash
+    pipenv install argparse
+
 ## RUN
 
     python -W ignore id.py -d ~/tmp/kaggle --test

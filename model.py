@@ -22,7 +22,7 @@ class FeatureGen(Sequence):
         super(FeatureGen, self).__init__()
 
         self.config = config
-        print self.config.img_shape
+        print(self.config.img_shape)
         self.data = data
         self.batch_size = batch_size
         self.verbose = verbose
