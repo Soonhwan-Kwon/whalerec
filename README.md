@@ -28,4 +28,4 @@ which also installs numpy.
 
 ## TODO
 
-*   Check with Martin about the global score thing
+*   Check with Martin about the global score thing - I think its probably fine.
