@@ -1,0 +1,18 @@
+[[source]]
+verify_ssl = true
+url = "https://pypi.org/simple"
+name = "pypi"
+
+[dev-packages]
+
+[requires]
+python_version = "3.5"
+
+[packages]
+pandas = "*"
+numpy = "*"
+keras = "*"
+tensorflow = "*"
+tqdm = "*"
+imagehash = "*"
+argparse = "*"
