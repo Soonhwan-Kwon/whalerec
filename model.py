@@ -18,11 +18,11 @@ import numpy as np
 
 # A Keras generator to evaluate only the BRANCH MODEL
 class FeatureGen(Sequence):
-    def __init__(self, globals, data, batch_size=64, verbose=1):
+    def __init__(self, config, data, batch_size=64, verbose=1):
         super(FeatureGen, self).__init__()
 
-        self.globals = globals
-        print self.globals.img_shape
+        self.config = config
+        print self.config.img_shape
         self.data = data
         self.batch_size = batch_size
         self.verbose = verbose
@@ -32,9 +32,9 @@ class FeatureGen(Sequence):
     def __getitem__(self, index):
         start = self.batch_size * index
         size = min(len(self.data) - start, self.batch_size)
-        a = np.zeros((size,) + self.globals.img_shape, dtype=K.floatx())
+        a = np.zeros((size,) + self.config.img_shape, dtype=K.floatx())
         for i in range(size):
-            a[i, :, :, :] = utils.read_cropped_image(self.globals, self.data[start + i], False)
+            a[i, :, :, :] = utils.read_cropped_image(self.config, self.data[start + i], False)
         if self.verbose > 0:
             self.progress.update()
             if self.progress.n >= len(self):
@@ -207,99 +207,97 @@ def score_reshape(score, x, y=None):
     return m
 
 
-def compute_score(globals, verbose=1):
+def compute_score(config, data, verbose=1):
     """
     Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
     """
-    features = globals.branch_model.predict_generator(FeatureGen(globals, globals.train, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
-    score = globals.head_model.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    features = data.branch_model.predict_generator(FeatureGen(config, data.train, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    score = data.head_model.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
     score = score_reshape(score, features)
-    globals.features = features
-    globals.score = score
+    data.features = features
+    data.score = score
 
 
-def make_steps(globals, step, ampl):
+def make_steps(config, data, step, ampl):
     """
     Perform training epochs
     @param step Number of epochs to perform
     @param ampl the K, the randomized component of the score matrix.
     """
-    global w2ts, t2i, steps, features, score, histories
-
     # shuffle the training pictures
-    random.shuffle(globals.train)
+    random.shuffle(data.train)
 
-    utils.map_train(globals)
+    utils.map_train(config, data)
 
     # Compute the match score for each picture pair
-    compute_score(globals)
+    compute_score(config, data)
 
     # Train the model for 'step' epochs
     # history = model.fit_generator(
-    #     TrainingData(globals, score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
+    #     TrainingData(config, data.train, score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
     #     initial_epoch=steps, epochs=steps + step, max_queue_size=12, workers=6, verbose=0,
     #     callbacks=[
     #         TQDMNotebookCallback(leave_inner=True, metric_format='{value:0.3f}')
     #     ]).history
     history = model.fit_generator(
-        TrainingData(globals, score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
-        initial_epoch=steps, epochs=steps + step, max_queue_size=12, workers=6, verbose=0
+        TrainingData(config, data.train, data.score + ampl * np.random.random_sample(size=data.score.shape), steps=step, batch_size=32),
+        initial_epoch=data.steps, epochs=data.steps + step, max_queue_size=12, workers=6, verbose=0
     ).history
 
-    globals.steps += step
+    data.steps += step
 
     # Collect history data
-    history['epochs'] = globals.steps
-    history['ms'] = np.mean(globals.score)
-    history['lr'] = get_lr(globals.model)
+    history['epochs'] = data.steps
+    history['ms'] = np.mean(data.score)
+    history['lr'] = get_lr(data.model)
     print(history['epochs'], history['lr'], history['ms'])
-    globals.histories.append(history)
+    data.histories.append(history)
 
 
-def make_standard(globals):
+def make_standard(config, data):
     model_name = 'standard.model'
     if isfile(model_name):
         tmp = keras.models.load_model(model_name)
-        globals.model.set_weights(tmp.get_weights())
+        data.model.set_weights(tmp.get_weights())
     else:
         # epoch -> 10
-        make_steps(globals, 10, 1000)
+        make_steps(config, data, 10, 1000)
         ampl = 100.0
         for _ in range(10):
             print('noise ampl.  = ', ampl)
-            make_steps(globals, 5, ampl)
+            make_steps(config, data, 5, ampl)
             ampl = max(1.0, 100**-0.1 * ampl)
         # epoch -> 150
         for _ in range(18):
-            make_steps(globals, 5, 1.0)
+            make_steps(config, data, 5, 1.0)
         # epoch -> 200
-        set_lr(globals.model, 16e-5)
+        set_lr(data.model, 16e-5)
         for _ in range(10):
-            make_steps(globals, 5, 0.5)
+            make_steps(config, data, 5, 0.5)
         # epoch -> 240
-        set_lr(globals.model, 4e-5)
+        set_lr(data.model, 4e-5)
         for _ in range(8):
-            make_steps(globals, 5, 0.25)
+            make_steps(config, data, 5, 0.25)
         # epoch -> 250
-        set_lr(globals.model, 1e-5)
+        set_lr(datadir.model, 1e-5)
         for _ in range(2):
-            make_steps(globals, 5, 0.25)
+            make_steps(config, data, 5, 0.25)
         # epoch -> 300
-        weights = globals.model.get_weights()
-        globals.model, globals.branch_model, globals.head_model = build_model(64e-5, 0.0002)
-        globals.model.set_weights(weights)
+        weights = data.model.get_weights()
+        data.model, data.branch_model, data.head_model = build_model(64e-5, 0.0002)
+        data.model.set_weights(weights)
         for _ in range(10):
-            make_steps(globals, 5, 1.0)
+            make_steps(config, data, 5, 1.0)
         # epoch -> 350
-        set_lr(globals.model, 16e-5)
+        set_lr(data.model, 16e-5)
         for _ in range(10):
-            make_steps(globals, 5, 0.5)
+            make_steps(config, data, 5, 0.5)
         # epoch -> 390
-        set_lr(globals.model, 4e-5)
+        set_lr(data.model, 4e-5)
         for _ in range(8):
-            make_steps(globals, 5, 0.25)
+            make_steps(config, data, 5, 0.25)
         # epoch -> 400
-        set_lr(globals.model, 1e-5)
+        set_lr(data.model, 1e-5)
         for _ in range(2):
-            make_steps(globals, 5, 0.25)
+            make_steps(config, data, 5, 0.25)
         model.save(model_name)

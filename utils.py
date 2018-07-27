@@ -21,13 +21,13 @@ import pickle
 from tqdm import tqdm
 
 
-def p2size(globals, images):
+def p2size(config, images):
     p2size = deserialize('p2size.pickle')
     if p2size is None:
         p2size = {}
 
         for imagename in tqdm(images):
-            size = pil_image.open(globals.filename(imagename)).size
+            size = pil_image.open(config.filename(imagename)).size
             p2size[imagename] = size
 
         serialize(p2size, 'p2size.pickle')
@@ -35,15 +35,15 @@ def p2size(globals, images):
     return p2size
 
 
-def p2h(globals, images):
+def p2h(config, images):
     p2h = deserialize('p2h.pickle')
     if p2h is None:
         # Compute phash for each image in the training and test set.
         p2h = {}
         for imagename in tqdm(images):
-            img = pil_image.open(globals.filename(p))
+            img = pil_image.open(config.filename(p))
             h = phash(img)
-            globals.p2h[imagename] = h
+            config.p2h[imagename] = h
 
         h2ps = unique_hashes(p2h)
 
@@ -54,7 +54,7 @@ def p2h(globals, images):
         h2h = {}
         for i, h1 in enumerate(tqdm(hs)):
             for h2 in hs[:i]:
-                if h1 - h2 <= 6 and match(globals.datadir, h2ps, h1, h2):
+                if h1 - h2 <= 6 and match(config.datadir, h2ps, h1, h2):
                     s1 = str(h1)
                     s2 = str(h2)
                     if s1 < s2:
@@ -70,7 +70,7 @@ def p2h(globals, images):
 
         serialize(p2h, 'p2h.pickle')
 
-    # print len(globals.p2h), list(globals.p2h.items())[:5]
+    # print len(config.p2h), list(config.p2h.items())[:5]
     return p2h
 
 
@@ -126,7 +126,7 @@ def expand_path(datadir, p):
     return p
 
 
-def read_cropped_image(globals, p, augment):
+def read_cropped_image(config, p, augment):
     """
     @param p : the name of the picture to read
     @param augment: True/False if data augmentation should be performed, True for training, False for validation
@@ -135,12 +135,12 @@ def read_cropped_image(globals, p, augment):
     anisotropy = 2.15  # The horizontal compression ratio
 
     # If an image id was given, convert to filename
-    if p in globals.h2p:
-        p = globals.h2p[p]
-    size_x, size_y = globals.p2size[p]
+    if p in config.h2p:
+        p = config.h2p[p]
+    size_x, size_y = config.p2size[p]
 
     # Determine the region of the original image we want to capture based on the bounding box.
-    if globals.p2bb is None or p not in globals.p2size.keys():
+    if config.p2bb is None or p not in config.p2size.keys():
         crop_margin = 0.0
         x0 = 0
         y0 = 0
@@ -148,8 +148,8 @@ def read_cropped_image(globals, p, augment):
         y1 = size_y
     else:
         crop_margin = 0.05  # The margin added around the bounding box to compensate for bounding box inaccuracy
-        x0, y0, x1, y1 = globals.p2bb[p]
-    if p in globals.rotate:
+        x0, y0, x1, y1 = config.p2bb[p]
+    if p in config.rotate:
         x0, y0, x1, y1 = size_x - x1, size_y - y1, size_x - x0, size_y - y0
     dx = x1 - x0
     dy = y1 - y0
@@ -177,8 +177,8 @@ def read_cropped_image(globals, p, augment):
         x1 += dx
 
     # Generate the transformation matrix
-    trans = np.array([[1, 0, -0.5 * globals.img_shape[0]], [0, 1, -0.5 * globals.img_shape[1]], [0, 0, 1]])
-    trans = np.dot(np.array([[(y1 - y0) / globals.img_shape[0], 0, 0], [0, (x1 - x0) / globals.img_shape[1], 0], [0, 0, 1]]), trans)
+    trans = np.array([[1, 0, -0.5 * config.img_shape[0]], [0, 1, -0.5 * config.img_shape[1]], [0, 0, 1]])
+    trans = np.dot(np.array([[(y1 - y0) / config.img_shape[0], 0, 0], [0, (x1 - x0) / config.img_shape[1], 0], [0, 0, 1]]), trans)
     if augment:
         trans = np.dot(build_transform(
             random.uniform(-5, 5),
@@ -191,15 +191,15 @@ def read_cropped_image(globals, p, augment):
     trans = np.dot(np.array([[1, 0, 0.5 * (y1 + y0)], [0, 1, 0.5 * (x1 + x0)], [0, 0, 1]]), trans)
 
     # Read the image, transform to black and white and comvert to numpy array
-    img = read_raw_image(globals, p).convert('L')
+    img = read_raw_image(config, p).convert('L')
     img = img_to_array(img)
 
     # Apply affine transformation
     matrix = trans[:2, :2]
     offset = trans[:2, 2]
     img = img.reshape(img.shape[:-1])
-    img = affine_transform(img, matrix, offset, output_shape=globals.img_shape[:-1], order=1, mode='constant', cval=np.average(img))
-    img = img.reshape(globals.img_shape)
+    img = affine_transform(img, matrix, offset, output_shape=config.img_shape[:-1], order=1, mode='constant', cval=np.average(img))
+    img = img.reshape(config.img_shape)
 
     # Normalize to zero mean and unit variance
     img -= np.mean(img, keepdims=True)
@@ -207,9 +207,9 @@ def read_cropped_image(globals, p, augment):
     return img
 
 
-def read_raw_image(globals, p):
-    img = pil_image.open(globals.filename(p))
-    if p in globals.rotate:
+def read_raw_image(config, p):
+    img = pil_image.open(config.filename(p))
+    if p in config.rotate:
         img = img.rotate(180)
     return img
 
@@ -268,11 +268,11 @@ def h2ws(p2h, tagged):
     return h2ws
 
 
-def w2hs(globals):
+def w2hs(config):
     w2hs = {}
-    for h, ws in globals.h2ws.items():
+    for h, ws in config.h2ws.items():
         if len(ws) == 1:  # Use only unambiguous pictures
-            if globals.exclude is not None and globals.h2p[h] in globals.exclude:
+            if config.exclude is not None and config.h2p[h] in config.exclude:
                 print "Skipping", h  # Skip excluded images
             else:
                 w = ws[0]
@@ -287,15 +287,15 @@ def w2hs(globals):
     return w2hs
 
 
-def map_train(globals):
+def map_train(config, data):
     """
     Couldn't figure out what to call this
     """
 
     w2ts = {}  # Associate the image ids from train to each whale id.
-    for w, hs in globals.w2hs.items():
+    for w, hs in config.w2hs.items():
         for h in hs:
-            if h in globals.train_set:
+            if h in data.train_set:
                 if w not in w2ts:
                     w2ts[w] = []
                 if h not in w2ts[w]:
@@ -303,12 +303,12 @@ def map_train(globals):
     for w, ts in w2ts.items():
         w2ts[w] = np.array(ts)
 
-    globals.w2ts = w2ts
+    config.w2ts = w2ts
 
     t2i = {}  # The position in train of each training image id
-    for i, t in enumerate(globals.train):
+    for i, t in enumerate(data.train):
         t2i[t] = i
 
-    globals.t2i = t2i
+    config.t2i = t2i
 
-    print len(globals.train), len(globals.w2ts)
+    print len(data.train), len(config.w2ts)
