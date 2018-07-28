@@ -22,8 +22,6 @@ standard_model = 'standard.model'
 
 class Execution(object):
     def __init__(self):
-        super(Execution, self).__init__()
-
         self.steps = 0
         self.histories = []
         self.score = None
@@ -31,8 +29,6 @@ class Execution(object):
 
 class WhaleRecModel(object):
     def __init__(self, siamese, branch, head):
-        super(Model, self).__init__()
-
         self.siamese = siamese
         self.branch = branch
         self.head = head
