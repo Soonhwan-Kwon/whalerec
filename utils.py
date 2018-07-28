@@ -33,56 +33,71 @@ class Config(object):
         return expand_path(self.datadir, p)
 
 
-def p2size(config, images):
-    p2size = deserialize('p2size.pickle')
-    if p2size is None:
-        p2size = {}
+def calc_p2size(config, images):
+    p2size = {}
+    for imagename in tqdm(images):
+        size = pil_image.open(config.filename(imagename)).size
+        p2size[imagename] = size
 
-        for imagename in tqdm(images):
-            size = pil_image.open(config.filename(imagename)).size
-            p2size[imagename] = size
-
-        serialize(p2size, 'p2size.pickle')
     # print(len(p2size), list(p2size.items())[:5])
     return p2size
 
 
-def p2h(config, images):
+def p2size(config, images, test=False):
+    if test:
+        return calc_p2size(config, images)
+
+    p2size = deserialize('p2size.pickle')
+    if p2size is None:
+        p2size = calc_p2size(config, images)
+        serialize(p2size, 'p2size.pickle')
+
+    return p2size
+
+
+def calc_p2h(config, images):
+    # Compute phash for each image in the training and test set.
+    p2h = {}
+    for imagename in tqdm(images):
+        img = pil_image.open(config.filename(imagename))
+        h = phash(img)
+        p2h[imagename] = h
+
+    h2ps = unique_hashes(p2h)
+
+    # Find all distinct phash values
+    hs = list(h2ps.keys())
+
+    # If the images are close enough, associate the two phash values (this is the slow part: n^2 algorithm)
+    h2h = {}
+    for i, h1 in enumerate(tqdm(hs)):
+        for h2 in hs[:i]:
+            if h1 - h2 <= 6 and match(config.datadir, h2ps, h1, h2):
+                s1 = str(h1)
+                s2 = str(h2)
+                if s1 < s2:
+                    s1, s2 = s2, s1
+                h2h[s1] = s2
+
+    # Group together images with equivalent phash, and replace by string format of phash (faster and more readable)
+    for p, h in p2h.items():
+        h = str(h)
+        if h in h2h:
+            h = h2h[h]
+        p2h[p] = h
+
+    return p2h
+
+
+def p2h(config, images, test=False):
+    if test:
+        return calc_p2h(config, images)
+
     p2h = deserialize('p2h.pickle')
     if p2h is None:
-        # Compute phash for each image in the training and test set.
-        p2h = {}
-        for imagename in tqdm(images):
-            img = pil_image.open(config.filename(imagename))
-            h = phash(img)
-            p2h[imagename] = h
-
-        h2ps = unique_hashes(p2h)
-
-        # Find all distinct phash values
-        hs = list(h2ps.keys())
-
-        # If the images are close enough, associate the two phash values (this is the slow part: n^2 algorithm)
-        h2h = {}
-        for i, h1 in enumerate(tqdm(hs)):
-            for h2 in hs[:i]:
-                if h1 - h2 <= 6 and match(config.datadir, h2ps, h1, h2):
-                    s1 = str(h1)
-                    s2 = str(h2)
-                    if s1 < s2:
-                        s1, s2 = s2, s1
-                    h2h[s1] = s2
-
-        # Group together images with equivalent phash, and replace by string format of phash (faster and more readable)
-        for p, h in p2h.items():
-            h = str(h)
-            if h in h2h:
-                h = h2h[h]
-            p2h[p] = h
-
+        p2h = calc_p2h(config, images)
         serialize(p2h, 'p2h.pickle')
 
-    # print(len(config.p2h), list(config.p2h.items())[:5])
     return p2h
 
 
@@ -354,9 +369,9 @@ def getConfig(datadir, test=False):
 
     # print(len(tagged), len(submit), len(join), list(tagged.items())[:5], submit[:5])
 
-    config.p2size = p2size(config, join)
+    config.p2size = p2size(config, join, test)
 
-    config.p2h = p2h(config, join)
+    config.p2h = p2h(config, join, test)
 
     config.h2ps = unique_hashes(config.p2h)
 
