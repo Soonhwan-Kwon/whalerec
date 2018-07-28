@@ -26,6 +26,8 @@ which also installs numpy.
 
 ### Install NVidia drivers
 
+Found this info [here](https://yangcha.github.io/CUDA90/)
+
 ```
 wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_9.0.176-1_amd64.deb
 wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn7_7.0.5.15-1+cuda9.0_amd64.deb

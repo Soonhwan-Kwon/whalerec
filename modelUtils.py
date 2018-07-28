@@ -284,15 +284,16 @@ def get_standard():
 def make_standard(config, test=False):
     execution = Execution()
 
-    # Find the list of training images, keep only whales with at least two images.
-    train = []  # A list of training image ids
-    for hs in config.w2hs.values():
-        if len(hs) > 1:
-            train += hs
+    if test:
+        train = config.w2hs.values()[:10]
+    else:
+        # Find the list of training images, keep only whales with at least two images.
+        train = []  # A list of training image ids
+        for hs in config.w2hs.values():
+            if len(hs) > 1:
+                train += hs
 
     # print(len(train), train[:10])
-    if test:
-        train = train[:10]
 
     random.shuffle(train)
 
