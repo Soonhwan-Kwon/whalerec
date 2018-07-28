@@ -281,19 +281,18 @@ def get_standard():
         return None
 
 
-def make_standard(config, test=False):
+def make_standard(config):
     execution = Execution()
 
-    if test:
-        train = config.w2hs.values()[:10]
-    else:
-        # Find the list of training images, keep only whales with at least two images.
-        train = []  # A list of training image ids
-        for hs in config.w2hs.values():
-            if len(hs) > 1:
-                train += hs
+    # Find the list of training images, keep only whales with at least two images.
+    train = []  # A list of training image ids
+    for hs in config.w2hs.values():
+        if len(hs) > 1:
+            train += hs
 
-    # print(len(train), train[:10])
+    print("Training Images: ", len(train))
+    if len(train) = 0:
+        print ("No data to train on!")
 
     random.shuffle(train)
 
