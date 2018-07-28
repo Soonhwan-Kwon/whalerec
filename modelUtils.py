@@ -22,7 +22,7 @@ standard_model = 'standard.model'
 
 class Execution(object):
     def __init__(self):
-        super(Model, self).__init__()
+        super(Execution, self).__init__()
 
         self.steps = 0
         self.histories = []
