@@ -11,8 +11,6 @@ python_version = "3.5"
 [packages]
 pandas = "*"
 numpy = "*"
-keras = "*"
-tensorflow = "*"
 tqdm = "*"
 imagehash = "*"
 argparse = "*"
