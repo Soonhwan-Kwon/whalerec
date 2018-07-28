@@ -291,7 +291,7 @@ def make_standard(config):
             train += hs
 
     print("Training Images: ", len(train))
-    if len(train) = 0:
+    if len(train) == 0:
         print ("No data to train on!")
 
     random.shuffle(train)

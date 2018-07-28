@@ -371,7 +371,7 @@ def getConfig(datadir, test=None):
     submit = [p for _, p, _ in read_csv(csvFile).to_records()]
 
     if test is not None:
-        submit = {k: submit[k] for k in list(submit)[:test]}
+        submit = submit[:test]
 
     join = list(tagged.keys()) + submit
 
