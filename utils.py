@@ -1,3 +1,6 @@
+import platform
+import random
+
 from os.path import isfile
 import numpy as np
 # Suppress annoying stderr output when importing keras.
@@ -6,7 +9,6 @@ import numpy as np
 import keras
 # sys.stderr = old_stderr
 
-import random
 from keras import backend as K
 from keras.preprocessing.image import img_to_array
 from scipy.ndimage import affine_transform
@@ -19,6 +21,20 @@ import pickle
 #
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
+from imagehash import phash
+from pandas import read_csv
+
+
+class Config(object):
+    def __init__(self, datadir):
+        self.datadir = datadir
+
+    def filename(self, p):
+        return expand_path(self.datadir, p)
+
+
+class Data(object):
+    pass
 
 
 def p2size(config, images):
@@ -312,3 +328,74 @@ def map_train(config, data):
     config.t2i = t2i
 
     print(len(data.train), len(config.w2ts))
+
+
+def getConfig(datadir, test=False):
+    config = Config(datadir)
+    config.img_shape = (384, 384, 1)  # The image shape used by the model
+
+    #
+    # Just going to set this to an empty array. Martin determined which should be rotated manually by adding
+    # to the list as he found them. Going to just ignore these for now.
+    #
+    config.rotate = []
+    #
+    # If we want to include bounding boxes for the images (Martin's method to obtain them was manual)
+    # then we can read them in here. I'm going to ignore them for now and assume that we are going to try
+    # and use closely cropped images.
+    # Similarly not setting any excluded images
+    #
+    config.p2bb = None
+    config.exclude = None
+
+    csvFile = datadir + "/train_test.csv" if test else datadir + "/train.csv"
+    tagged = dict([(p, w) for _, p, w in read_csv(csvFile).to_records()])
+
+    csvFile = datadir + "/sample_submission_test.csv" if test else datadir + "/sample_submission.csv"
+    submit = [p for _, p, _ in read_csv(csvFile).to_records()]
+
+    join = list(tagged.keys()) + submit
+
+    # print(len(tagged), len(submit), len(join), list(tagged.items())[:5], submit[:5])
+
+    config.p2size = p2size(config, join)
+
+    config.p2h = p2h(config, join)
+
+    config.h2ps = unique_hashes(config.p2h)
+
+    # Notice how 25460 images use only 20913 distinct image ids.
+    # print(len(config.h2ps), list(config.h2ps.items())[:5])
+
+    config.h2p = {}
+    for h, ps in config.h2ps.items():
+        config.h2p[h] = prefer(ps, config.p2size)
+
+    # print(len(config.h2p), list(config.h2p.items())[:5])
+
+    config.h2ws = h2ws(config.p2h, tagged)
+
+    config.w2hs = w2hs(config)
+
+    return config
+
+
+def getData(config):
+    data = Data()
+    data.histories = []
+    data.steps = 0
+    # data.score = 0.0
+
+    # Find the list of training images, keep only whales with at least two images.
+    train = []  # A list of training image ids
+    for hs in config.w2hs.values():
+        if len(hs) > 1:
+            train += hs
+    random.shuffle(train)
+
+    data.train = train
+    data.train_set = set(train)
+
+    map_train(config, data)
+
+    return data

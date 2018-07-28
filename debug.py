@@ -1,8 +1,14 @@
 import utils
+import argparse
+import random
 
 import matplotlib.pyplot as plt
 from keras.preprocessing.image import array_to_img
 from PIL import Image as pil_image
+
+from train import TrainingData
+
+import numpy as np
 
 
 def show_whale(imgs, per_row=2):
@@ -48,3 +54,26 @@ def show_results(a, b):
     # Second pair is for different whales
     imgs = [array_to_img(a[1]), array_to_img(b[1])]
     show_whale(imgs, per_row=2)
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--test', action='store_true')
+parser.add_argument('-d', '--datadir', dest='datadir')
+args = parser.parse_args()
+
+
+config = utils.getConfig(args.datadir, args.test)
+
+show_similar_image_example(config)
+show_images(config, list(config.p2size.keys())[31])  # Show sample image
+
+
+data = utils.getData(config)
+
+# Test on a batch of 32 with random costs.
+score = np.random.random_sample(size=(len(data.train), len(data.train)))
+data = TrainingData(config, data.train, score)
+(a, b), c = data[0]
+print(a.shape, b.shape, c.shape)
+
+show_results(a, b)
