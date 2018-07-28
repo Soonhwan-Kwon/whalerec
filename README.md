@@ -22,8 +22,11 @@ which also installs numpy.
     #
     pip install --user lap
 
+
+    #
+    # On AWS instance
+    #
     pipenv install pandas
-    pipenv install matplotlib
     pipenv install keras
     pipenv install tensorflow
     pipenv install tqdm
