@@ -57,7 +57,7 @@ def p2h(config, images):
         # Compute phash for each image in the training and test set.
         p2h = {}
         for imagename in tqdm(images):
-            img = pil_image.open(config.filename(p))
+            img = pil_image.open(config.filename(imagename))
             h = phash(img)
             config.p2h[imagename] = h
 
