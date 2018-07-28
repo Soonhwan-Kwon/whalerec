@@ -33,10 +33,6 @@ class Config(object):
         return expand_path(self.datadir, p)
 
 
-class Data(object):
-    pass
-
-
 def p2size(config, images):
     p2size = deserialize('p2size.pickle')
     if p2size is None:
@@ -303,7 +299,7 @@ def w2hs(config):
     return w2hs
 
 
-def map_train(config, data):
+def map_train(config, train):
     """
     Couldn't figure out what to call this
     """
@@ -311,7 +307,7 @@ def map_train(config, data):
     w2ts = {}  # Associate the image ids from train to each whale id.
     for w, hs in config.w2hs.items():
         for h in hs:
-            if h in data.train_set:
+            if h in set(train):
                 if w not in w2ts:
                     w2ts[w] = []
                 if h not in w2ts[w]:
@@ -322,12 +318,12 @@ def map_train(config, data):
     config.w2ts = w2ts
 
     t2i = {}  # The position in train of each training image id
-    for i, t in enumerate(data.train):
+    for i, t in enumerate(train):
         t2i[t] = i
 
     config.t2i = t2i
 
-    print(len(data.train), len(config.w2ts))
+    # print(len(train), len(config.w2ts))
 
 
 def getConfig(datadir, test=False):
@@ -378,24 +374,3 @@ def getConfig(datadir, test=False):
     config.w2hs = w2hs(config)
 
     return config
-
-
-def getData(config):
-    data = Data()
-    data.histories = []
-    data.steps = 0
-    # data.score = 0.0
-
-    # Find the list of training images, keep only whales with at least two images.
-    train = []  # A list of training image ids
-    for hs in config.w2hs.values():
-        if len(hs) > 1:
-            train += hs
-    random.shuffle(train)
-
-    data.train = train
-    data.train_set = set(train)
-
-    map_train(config, data)
-
-    return data

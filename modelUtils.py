@@ -15,6 +15,28 @@ from keras.utils import Sequence
 from tqdm import tqdm
 import numpy as np
 
+from trainUtils import TrainingData
+
+standard_model = 'standard.model'
+
+
+class Execution(object):
+    def __init__(self):
+        super(Model, self).__init__()
+
+        self.steps = 0
+        self.histories = []
+        self.score = None
+
+
+class Model(object):
+    def __init__(self, siamese, branch, head):
+        super(Model, self).__init__()
+
+        self.siamese = siamese
+        self.branch = branch
+        self.head = head
+
 
 # A Keras generator to evaluate only the BRANCH MODEL
 class FeatureGen(Sequence):
@@ -173,7 +195,7 @@ def build(img_shape, lr, l2, activation='sigmoid'):
     model = Model([img_a, img_b], x)
     model.compile(optim, loss='binary_crossentropy', metrics=['binary_crossentropy', 'acc'])
 
-    return model, branch_model, head_model
+    return Model(model, branch_model, head_model)
 
 
 def set_lr(model, lr):
@@ -207,97 +229,123 @@ def score_reshape(score, x, y=None):
     return m
 
 
-def compute_score(config, data, verbose=1):
+def compute_score(config, model, execution, train, verbose=1):
     """
     Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
     """
-    features = data.branch_model.predict_generator(FeatureGen(config, data.train, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
-    score = data.head_model.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
-    score = score_reshape(score, features)
-    data.features = features
-    data.score = score
+    features = model.branch.predict_generator(FeatureGen(config, train, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    score = model.head.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    execution.score = score_reshape(score, features)
 
 
-def make_steps(config, data, step, ampl):
+def make_steps(config, model, execution, train, step, ampl):
     """
     Perform training epochs
     @param step Number of epochs to perform
     @param ampl the K, the randomized component of the score matrix.
     """
     # shuffle the training pictures
-    random.shuffle(data.train)
+    random.shuffle(train)
 
-    utils.map_train(config, data)
+    utils.map_train(config, train)
 
     # Compute the match score for each picture pair
-    compute_score(config, data)
+    compute_score(config, model, execution, train)
 
     # Train the model for 'step' epochs
-    # history = model.fit_generator(
+    # history = model.siamese.fit_generator(
     #     TrainingData(config, data.train, score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
     #     initial_epoch=steps, epochs=steps + step, max_queue_size=12, workers=6, verbose=0,
     #     callbacks=[
     #         TQDMNotebookCallback(leave_inner=True, metric_format='{value:0.3f}')
     #     ]).history
-    history = model.fit_generator(
-        TrainingData(config, data.train, data.score + ampl * np.random.random_sample(size=data.score.shape), steps=step, batch_size=32),
-        initial_epoch=data.steps, epochs=data.steps + step, max_queue_size=12, workers=6, verbose=0
+    history = model.siamese.fit_generator(
+        TrainingData(config, train, execution.score + ampl * np.random.random_sample(size=execution.score.shape), steps=step, batch_size=32),
+        initial_epoch=execution.steps, epochs=execution.steps + step, max_queue_size=12, workers=6, verbose=0
     ).history
 
-    data.steps += step
+    execution.steps += step
+    print ("STEPS: ", execution.steps)
 
     # Collect history data
-    history['epochs'] = data.steps
-    history['ms'] = np.mean(data.score)
-    history['lr'] = get_lr(data.model)
+    history['epochs'] = execution.steps
+    history['ms'] = np.mean(execution.score)
+    history['lr'] = get_lr(model.siamese)
     print(history['epochs'], history['lr'], history['ms'])
-    data.histories.append(history)
+    execution.histories.append(history)
 
 
-def make_standard(config, data):
-    model_name = 'standard.model'
-    if isfile(model_name):
-        tmp = keras.models.load_model(model_name)
-        data.model.set_weights(tmp.get_weights())
+def get_standard():
+    if isfile(standard_model):
+        model = build(config.img_shape, 64e-5, 0)
+        tmp = keras.models.load_model(standard_model)
+        model.model.set_weights(tmp.get_weights())
+        return model
     else:
-        # epoch -> 10
-        make_steps(config, data, 10, 1000)
-        ampl = 100.0
-        for _ in range(10):
-            print('noise ampl.  = ', ampl)
-            make_steps(config, data, 5, ampl)
-            ampl = max(1.0, 100**-0.1 * ampl)
-        # epoch -> 150
-        for _ in range(18):
-            make_steps(config, data, 5, 1.0)
-        # epoch -> 200
-        set_lr(data.model, 16e-5)
-        for _ in range(10):
-            make_steps(config, data, 5, 0.5)
-        # epoch -> 240
-        set_lr(data.model, 4e-5)
-        for _ in range(8):
-            make_steps(config, data, 5, 0.25)
-        # epoch -> 250
-        set_lr(datadir.model, 1e-5)
-        for _ in range(2):
-            make_steps(config, data, 5, 0.25)
-        # epoch -> 300
-        weights = data.model.get_weights()
-        data.model, data.branch_model, data.head_model = build_model(64e-5, 0.0002)
-        data.model.set_weights(weights)
-        for _ in range(10):
-            make_steps(config, data, 5, 1.0)
-        # epoch -> 350
-        set_lr(data.model, 16e-5)
-        for _ in range(10):
-            make_steps(config, data, 5, 0.5)
-        # epoch -> 390
-        set_lr(data.model, 4e-5)
-        for _ in range(8):
-            make_steps(config, data, 5, 0.25)
-        # epoch -> 400
-        set_lr(data.model, 1e-5)
-        for _ in range(2):
-            make_steps(config, data, 5, 0.25)
-        model.save(model_name)
+        return None
+
+
+def make_standard(config, test=False):
+    execution = Execution()
+
+    # Find the list of training images, keep only whales with at least two images.
+    train = []  # A list of training image ids
+    for hs in config.w2hs.values():
+        if len(hs) > 1:
+            train += hs
+
+    # print(len(train), train[:10])
+    if test:
+        train = train[:10]
+
+    random.shuffle(train)
+
+    utils.map_train(config, train)
+
+    model = build(config.img_shape, 64e-5, 0)
+    # head_model.summary()
+    # branch_model.summary()
+
+    # epoch -> 10
+    make_steps(config, model, execution, train, 10, 1000)
+    ampl = 100.0
+    for _ in range(10):
+        print('noise ampl.  = ', ampl)
+        make_steps(config, model, execution, train, 5, ampl)
+        ampl = max(1.0, 100**-0.1 * ampl)
+    # epoch -> 150
+    for _ in range(18):
+        make_steps(config, model, execution, train, 5, 1.0)
+    # epoch -> 200
+    set_lr(model.siamese, 16e-5)
+    for _ in range(10):
+        make_steps(config, model, execution, train, 5, 0.5)
+    # epoch -> 240
+    set_lr(model.siamese, 4e-5)
+    for _ in range(8):
+        make_steps(config, model, execution, train, 5, 0.25)
+    # epoch -> 250
+    set_lr(model.siamese, 1e-5)
+    for _ in range(2):
+        make_steps(config, model, execution, train, 5, 0.25)
+    # epoch -> 300
+    weights = model.siamese.get_weights()
+
+    model = build(64e-5, 0.0002)
+    model.siamese.set_weights(weights)
+
+    for _ in range(10):
+        make_steps(config, model, execution, train, 5, 1.0)
+    # epoch -> 350
+    set_lr(model.siamese, 16e-5)
+    for _ in range(10):
+        make_steps(config, model, execution, train, 5, 0.5)
+    # epoch -> 390
+    set_lr(model.siamese, 4e-5)
+    for _ in range(8):
+        make_steps(config, model, execution, train, 5, 0.25)
+    # epoch -> 400
+    set_lr(model.siamese, 1e-5)
+    for _ in range(2):
+        make_steps(config, model, execution, train, 5, 0.25)
+    model.save(model_name)

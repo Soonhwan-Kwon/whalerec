@@ -62,9 +62,17 @@ Now reboot to get the load the NVidia drivers.
     pipenv install tensorflow-gpu
     pipenv install keras
 
-## RUN
+### Run
 
-    python -W ignore id.py -d ~/tmp/kaggle --test
+    python id.py -d ~/kaggle
+
+... or this if you want to ignore warnings ...
+
+    python -W ignore id.py -d ~/kaggle
+
+### Verify GPU Usage
+
+    nvidia-smi
 
 ## TODO
 
