@@ -29,7 +29,7 @@ class Execution(object):
         self.score = None
 
 
-class Model(object):
+class WhaleRecModel(object):
     def __init__(self, siamese, branch, head):
         super(Model, self).__init__()
 
@@ -195,7 +195,7 @@ def build(img_shape, lr, l2, activation='sigmoid'):
     model = Model([img_a, img_b], x)
     model.compile(optim, loss='binary_crossentropy', metrics=['binary_crossentropy', 'acc'])
 
-    return Model(model, branch_model, head_model)
+    return WhaleRecModel(model, branch_model, head_model)
 
 
 def set_lr(model, lr):
