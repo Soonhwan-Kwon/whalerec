@@ -59,7 +59,7 @@ def p2h(config, images):
         for imagename in tqdm(images):
             img = pil_image.open(config.filename(imagename))
             h = phash(img)
-            config.p2h[imagename] = h
+            p2h[imagename] = h
 
         h2ps = unique_hashes(p2h)
 
