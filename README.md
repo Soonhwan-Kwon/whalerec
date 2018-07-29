@@ -63,6 +63,7 @@ Now reboot to get the load the NVidia drivers.
 
     pipenv install tensorflow-gpu
     pipenv install keras
+    pipenv install keras_tqdm
 
 ### Run
 
