@@ -10,7 +10,7 @@ from keras.layers import Activation, Add, BatchNormalization, Concatenate, Conv2
 from keras.models import Model
 from keras import backend as K
 from keras.utils import Sequence
-# from keras_tqdm import TQDMNotebookCallback
+from keras_tqdm import TQDMCallback
 
 from tqdm import tqdm
 import numpy as np
@@ -257,7 +257,8 @@ def make_steps(config, model, execution, train, step, ampl):
     #     ]).history
     history = model.siamese.fit_generator(
         TrainingData(config, train, execution.score + ampl * np.random.random_sample(size=execution.score.shape), steps=step, batch_size=32),
-        initial_epoch=execution.steps, epochs=execution.steps + step, max_queue_size=12, workers=6, verbose=0
+        initial_epoch=execution.steps, epochs=execution.steps + step, max_queue_size=12, workers=6, verbose=0,
+        callbacks=[TQDMCallback(leave_inner=True, metric_format='{value:0.3f}')]
     ).history
 
     execution.steps += step

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "2dc91573c637696666c2a4d03131c295508f14a8b14b3658c93532d7e8528ac9"
+            "sha256": "e912bd138d21762634bd1aa5eb80d63de53f044f99654f696b8da076c03e3a8a"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -143,6 +143,14 @@
                 "sha256:f5306554d2b454d825b36f35e327744f5477bd2ae21017f1a93b2097bed6757e"
             ],
             "version": "==1.0.2"
+        },
+        "keras-tqdm": {
+            "hashes": [
+                "sha256:3f5b093d49852fc4c9bfeffdc17c8f3eb98b1e530dbd8cc407cf37d197a1dc3b",
+                "sha256:d5deb3bd201a66285fb796f240e6fb52ecb76fe6253bb72d6bb832abebe59f47"
+            ],
+            "index": "pypi",
+            "version": "==2.0.1"
         },
         "markdown": {
             "hashes": [
@@ -412,7 +420,7 @@
                 "sha256:0a2e54558a0628f2145d2fc822137e322412115173e8a2ddbe1c9024338ae83c",
                 "sha256:80044e51ec5bbf6c894ba0bc48d26a8c20a9ba629f4ca19ea26ecfcf87685f5f"
             ],
-            "markers": "python_version >= '3'",
+            "markers": "python_version >= '2.7' and python_version != '3.3.*' and python_version != '3.1.*' and python_version != '3.0.*' and python_version != '3.2.*'",
             "version": "==0.31.1"
         }
     },
