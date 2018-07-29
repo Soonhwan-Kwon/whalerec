@@ -359,14 +359,12 @@ def getConfig(datadir, test=None):
     config.p2bb = None
     config.exclude = None
 
-    # csvFile = datadir + "/train_test.csv" if test else datadir + "/train.csv"
     csvFile = datadir + "/train.csv"
     tagged = dict([(p, w) for _, p, w in read_csv(csvFile).to_records()])
 
     if test is not None:
         tagged = {k: tagged[k] for k in list(tagged)[:test]}
 
-    # csvFile = datadir + "/sample_submission_test.csv" if test else datadir + "/sample_submission.csv"
     csvFile = datadir + "/sample_submission.csv"
     submit = [p for _, p, _ in read_csv(csvFile).to_records()]
 

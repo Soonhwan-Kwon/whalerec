@@ -249,12 +249,6 @@ def make_steps(config, model, execution, train, step, ampl):
     compute_score(config, model, execution, train)
 
     # Train the model for 'step' epochs
-    # history = model.siamese.fit_generator(
-    #     TrainingData(config, data.train, score + ampl * np.random.random_sample(size=score.shape), steps=step, batch_size=32),
-    #     initial_epoch=steps, epochs=steps + step, max_queue_size=12, workers=6, verbose=0,
-    #     callbacks=[
-    #         TQDMNotebookCallback(leave_inner=True, metric_format='{value:0.3f}')
-    #     ]).history
     history = model.siamese.fit_generator(
         TrainingData(config, train, execution.score + ampl * np.random.random_sample(size=execution.score.shape), steps=step, batch_size=32),
         initial_epoch=execution.steps, epochs=execution.steps + step, max_queue_size=12, workers=6, verbose=0,
