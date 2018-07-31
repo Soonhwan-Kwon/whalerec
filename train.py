@@ -9,6 +9,7 @@ parser.add_argument('-t', '--test', action="store", type=int)  # Number of recor
 parser.add_argument('-d', '--datadir', dest='datadir')
 args = parser.parse_args()
 
+globals = utils.getGlobals()
 config = utils.getConfig(args.datadir, args.test)
 
-modelUtils.make_standard(config)
+modelUtils.make_standard(globals, config)

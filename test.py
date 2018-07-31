@@ -13,6 +13,7 @@ parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
 args = parser.parse_args()
 
+globals = utils.getGlobals()
 config = utils.getConfig(args.datadir)
 
 utils.debug_var("h2ps", config.h2ps)

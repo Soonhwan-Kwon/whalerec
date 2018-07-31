@@ -10,6 +10,7 @@ from train import TrainingData
 
 import numpy as np
 
+globals = utils.getGlobals()
 
 def show_whale(imgs, per_row=2):
     n = len(imgs)
@@ -38,8 +39,8 @@ def show_similar_image_example(config):
 def show_images(config, p):
     imgs = [
         utils.read_raw_image(config, p),
-        array_to_img(utils.read_cropped_image(config, p, False)),
-        array_to_img(utils.read_cropped_image(config, p, True))
+        array_to_img(utils.read_cropped_image(globals, config, p, False)),
+        array_to_img(utils.read_cropped_image(globals, config, p, True))
     ]
     show_whale(imgs, per_row=3)
 
@@ -59,7 +60,6 @@ parser.add_argument('--test', action='store_true')
 parser.add_argument('-d', '--datadir', dest='datadir')
 args = parser.parse_args()
 
-
 config = utils.getConfig(args.datadir, args.test)
 
 show_similar_image_example(config)
@@ -71,7 +71,7 @@ data = utils.getData(config)
 # Test on a batch of 32 with random costs.
 score = np.random.random_sample(size=(len(data.train), len(data.train)))
 
-data = TrainingData(config, data.train, score)
+data = TrainingData(globals, config, data.train, score)
 (a, b), c = data[0]
 print(a.shape, b.shape, c.shape)
 

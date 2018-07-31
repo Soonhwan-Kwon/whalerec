@@ -61,11 +61,12 @@ parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
 args = parser.parse_args()
 
+globals = utils.getGlobals()
 config = utils.getConfig(args.datadir, args.test)
 
 known = sorted(list(config.h2ws.keys()))
 
-model = modelUtils.get_standard()
+model = modelUtils.get_standard(globals)
 
 if args.file:
     submit = [args.file]
@@ -80,8 +81,8 @@ if model is None:
     sys.exit()
 
 # Evaluate the model.
-fknown = model.branch.predict_generator(FeatureGen(config, utils.hashes2images(known)), max_queue_size=20, workers=10, verbose=0)
-fsubmit = model.branch.predict_generator(FeatureGen(config, submit), max_queue_size=20, workers=10, verbose=0)
+fknown = model.branch.predict_generator(FeatureGen(globals, config, utils.hashes2images(known)), max_queue_size=20, workers=10, verbose=0)
+fsubmit = model.branch.predict_generator(FeatureGen(globals, config, submit), max_queue_size=20, workers=10, verbose=0)
 score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 

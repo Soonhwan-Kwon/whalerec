@@ -36,7 +36,7 @@ class WhaleRecModel(object):
 
 # A Keras generator to evaluate only the BRANCH MODEL
 class FeatureGen(Sequence):
-    def __init__(self, config, data, batch_size=64, verbose=1):
+    def __init__(self, globals, config, data, batch_size=64, verbose=1):
         super(FeatureGen, self).__init__()
 
         self.config = config
@@ -49,10 +49,10 @@ class FeatureGen(Sequence):
     def __getitem__(self, index):
         start = self.batch_size * index
         size = min(len(self.data) - start, self.batch_size)
-        a = np.zeros((size,) + self.config.img_shape, dtype=K.floatx())
+        a = np.zeros((size,) + self.globals.img_shape, dtype=K.floatx())
 
         for i in range(size):
-            a[i, :, :, :] = utils.read_cropped_image(self.config, self.data[start + i], False)
+            a[i, :, :, :] = utils.read_cropped_image(self.globals, self.config, self.data[start + i], False)
         if self.verbose > 0:
             self.progress.update()
             if self.progress.n >= len(self):
@@ -225,7 +225,7 @@ def score_reshape(score, x, y=None):
     return m
 
 
-def make_steps(config, model, execution, train, step, ampl):
+def make_steps(globals, config, model, execution, train, step, ampl):
     """
     Perform training epochs
     @param step Number of epochs to perform
@@ -235,13 +235,13 @@ def make_steps(config, model, execution, train, step, ampl):
     random.shuffle(train)
 
     # Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
-    features = model.branch.predict_generator(FeatureGen(config, utils.hashes2images(train), verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    features = model.branch.predict_generator(FeatureGen(globals, config, utils.hashes2images(train), verbose=verbose), max_queue_size=12, workers=6, verbose=0)
     score = model.head.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
     execution.score = score_reshape(score, features)
 
     # Train the model for 'step' epochs
     history = model.siamese.fit_generator(
-        TrainingData(config, train, execution.score + ampl * np.random.random_sample(size=execution.score.shape), steps=step, batch_size=32),
+        TrainingData(globals, config, train, execution.score + ampl * np.random.random_sample(size=execution.score.shape), steps=step, batch_size=32),
         initial_epoch=execution.steps, epochs=execution.steps + step, max_queue_size=12, workers=6, verbose=0,
         callbacks=[TQDMCallback(leave_inner=True, metric_format='{value:0.3f}')]
     ).history
@@ -257,9 +257,9 @@ def make_steps(config, model, execution, train, step, ampl):
     execution.histories.append(history)
 
 
-def get_standard():
+def get_standard(globals):
     if isfile(standard_model):
-        model = build(config.img_shape, 64e-5, 0)
+        model = build(globals.img_shape, 64e-5, 0)
         tmp = keras.models.load_model(standard_model)
         model.model.set_weights(tmp.get_weights())
         return model
@@ -267,7 +267,7 @@ def get_standard():
         return None
 
 
-def make_standard(config):
+def make_standard(globals, config):
     execution = Execution()
 
     # Find the list of training images, keep only whales with at least two images.
@@ -283,50 +283,50 @@ def make_standard(config):
 
     random.shuffle(train)
 
-    model = build(config.img_shape, 64e-5, 0)
+    model = build(globals.img_shape, 64e-5, 0)
     # head_model.summary()
     # branch_model.summary()
 
     # epoch -> 10
-    make_steps(config, model, execution, train, 10, 1000)
+    make_steps(globals, config, model, execution, train, 10, 1000)
     ampl = 100.0
     for _ in range(10):
         # print('noise ampl.  = ', ampl)
-        make_steps(config, model, execution, train, 5, ampl)
+        make_steps(globals, config, model, execution, train, 5, ampl)
         ampl = max(1.0, 100**-0.1 * ampl)
     # epoch -> 150
     for _ in range(18):
-        make_steps(config, model, execution, train, 5, 1.0)
+        make_steps(globals, config, model, execution, train, 5, 1.0)
     # epoch -> 200
     set_lr(model.siamese, 16e-5)
     for _ in range(10):
-        make_steps(config, model, execution, train, 5, 0.5)
+        make_steps(globals, config, model, execution, train, 5, 0.5)
     # epoch -> 240
     set_lr(model.siamese, 4e-5)
     for _ in range(8):
-        make_steps(config, model, execution, train, 5, 0.25)
+        make_steps(globals, config, model, execution, train, 5, 0.25)
     # epoch -> 250
     set_lr(model.siamese, 1e-5)
     for _ in range(2):
-        make_steps(config, model, execution, train, 5, 0.25)
+        make_steps(globals, config, model, execution, train, 5, 0.25)
     # epoch -> 300
     weights = model.siamese.get_weights()
 
-    model = build(config.img_shape, 64e-5, 0.0002)
+    model = build(globals.img_shape, 64e-5, 0.0002)
     model.siamese.set_weights(weights)
 
     for _ in range(10):
-        make_steps(config, model, execution, train, 5, 1.0)
+        make_steps(globals, config, model, execution, train, 5, 1.0)
     # epoch -> 350
     set_lr(model.siamese, 16e-5)
     for _ in range(10):
-        make_steps(config, model, execution, train, 5, 0.5)
+        make_steps(globals, config, model, execution, train, 5, 0.5)
     # epoch -> 390
     set_lr(model.siamese, 4e-5)
     for _ in range(8):
-        make_steps(config, model, execution, train, 5, 0.25)
+        make_steps(globals, config, model, execution, train, 5, 0.25)
     # epoch -> 400
     set_lr(model.siamese, 1e-5)
     for _ in range(2):
-        make_steps(config, model, execution, train, 5, 0.25)
+        make_steps(globals, config, model, execution, train, 5, 0.25)
     model.save(model_name)

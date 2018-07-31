@@ -21,13 +21,14 @@ except ImportError:
 
 
 class TrainingData(Sequence):
-    def __init__(self, config, train, score, steps=1000, batch_size=32):
+    def __init__(self, globals, config, train, score, steps=1000, batch_size=32):
         """
         @param score the cost matrix for the picture matching
         @param steps the number of epoch we are planning with this score matrix
         """
         super(TrainingData, self).__init__()
 
+        self.globals = globals
         self.config = config
         self.train = train
         self.score = -score  # Maximizing the score is the same as minimuzing -score.
@@ -64,16 +65,16 @@ class TrainingData(Sequence):
         end = min(start + self.batch_size, len(self.match) + len(self.unmatch))
         size = end - start
         assert size > 0
-        a = np.zeros((size,) + self.config.img_shape, dtype=K.floatx())
-        b = np.zeros((size,) + self.config.img_shape, dtype=K.floatx())
+        a = np.zeros((size,) + self.globals.img_shape, dtype=K.floatx())
+        b = np.zeros((size,) + self.globals.img_shape, dtype=K.floatx())
         c = np.zeros((size, 1), dtype=K.floatx())
         j = start // 2
         for i in range(0, size, 2):
-            a[i, :, :, :] = utils.read_cropped_image(self.config, self.config.h2p[self.match[j][0]], True)
-            b[i, :, :, :] = utils.read_cropped_image(self.config, self.config.h2p[self.match[j][1]], True)
+            a[i, :, :, :] = utils.read_cropped_image(self.globals, self.config, self.config.h2p[self.match[j][0]], True)
+            b[i, :, :, :] = utils.read_cropped_image(self.globals, self.config, self.config.h2p[self.match[j][1]], True)
             c[i, 0] = 1  # This is a match
-            a[i + 1, :, :, :] = utils.read_cropped_image(self.config, self.config.h2p[self.unmatch[j][0]], True)
-            b[i + 1, :, :, :] = utils.read_cropped_image(self.config, self.config.h2p[self.unmatch[j][1]], True)
+            a[i + 1, :, :, :] = utils.read_cropped_image(self.globals, self.config, self.config.h2p[self.unmatch[j][0]], True)
+            b[i + 1, :, :, :] = utils.read_cropped_image(self.globals, self.config, self.config.h2p[self.unmatch[j][1]], True)
             c[i + 1, 0] = 0  # Different whales
             j += 1
         return [a, b], c

@@ -102,3 +102,7 @@ Build tagged dict automatically in production code using existing directory stru
 Filenames will be path starting setN/... and not just the name of the image_file.
 
 Can create separate models with each set or one big model for all the sets.
+
+*   Isnt' the following line in id.py always going to create the same results? Cache?
+
+    fknown = model.branch.predict_generator(FeatureGen(config, utils.hashes2images(known)), max_queue_size=20, workers=10, verbose=0)

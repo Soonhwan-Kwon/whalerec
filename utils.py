@@ -38,6 +38,10 @@ def debug_var(name, var):
         print(name + ":", var)
 
 
+class Globals(object):
+    img_shape = (384, 384, 1)  # The image shape used by the model
+
+
 class Config(object):
     def __init__(self, datadir):
         self.datadir = datadir
@@ -174,7 +178,7 @@ def hashes2images(h2p, hashes):
     return images
 
 
-def read_cropped_image(config, p, augment):
+def read_cropped_image(globals, config, p, augment):
     """
     @param p : the name of the picture to read
     @param augment: True/False if data augmentation should be performed, True for training, False for validation
@@ -222,8 +226,8 @@ def read_cropped_image(config, p, augment):
         x1 += dx
 
     # Generate the transformation matrix
-    trans = np.array([[1, 0, -0.5 * config.img_shape[0]], [0, 1, -0.5 * config.img_shape[1]], [0, 0, 1]])
-    trans = np.dot(np.array([[(y1 - y0) / config.img_shape[0], 0, 0], [0, (x1 - x0) / config.img_shape[1], 0], [0, 0, 1]]), trans)
+    trans = np.array([[1, 0, -0.5 * globals.img_shape[0]], [0, 1, -0.5 * globals.img_shape[1]], [0, 0, 1]])
+    trans = np.dot(np.array([[(y1 - y0) / globals.img_shape[0], 0, 0], [0, (x1 - x0) / globals.img_shape[1], 0], [0, 0, 1]]), trans)
     if augment:
         trans = np.dot(build_transform(
             random.uniform(-5, 5),
@@ -243,8 +247,8 @@ def read_cropped_image(config, p, augment):
     matrix = trans[:2, :2]
     offset = trans[:2, 2]
     img = img.reshape(img.shape[:-1])
-    img = affine_transform(img, matrix, offset, output_shape=config.img_shape[:-1], order=1, mode='constant', cval=np.average(img))
-    img = img.reshape(config.img_shape)
+    img = affine_transform(img, matrix, offset, output_shape=globals.img_shape[:-1], order=1, mode='constant', cval=np.average(img))
+    img = img.reshape(globals.img_shape)
 
     # Normalize to zero mean and unit variance
     img -= np.mean(img, keepdims=True)
@@ -315,14 +319,11 @@ def w2hs(config):
     w2hs = {}
     for h, ws in config.h2ws.items():
         if len(ws) == 1:  # Use only unambiguous pictures
-            if config.exclude is not None and config.h2p[h] in config.exclude:
-                print("Skipping", h)  # Skip excluded images
-            else:
-                w = ws[0]
-                if w not in w2hs:
-                    w2hs[w] = []
-                if h not in w2hs[w]:
-                    w2hs[w].append(h)
+            w = ws[0]
+            if w not in w2hs:
+                w2hs[w] = []
+            if h not in w2hs[w]:
+                w2hs[w].append(h)
     for w, hs in w2hs.items():
         if len(hs) > 1:
             w2hs[w] = sorted(hs)
@@ -330,9 +331,12 @@ def w2hs(config):
     return w2hs
 
 
+def getGlobals():
+    return Globals()
+
+
 def getConfig(datadir, test=None):
     config = Config(datadir)
-    config.img_shape = (384, 384, 1)  # The image shape used by the model
 
     #
     # Just going to set this to an empty array. Martin determined which should be rotated manually by adding
@@ -343,10 +347,8 @@ def getConfig(datadir, test=None):
     # If we want to include bounding boxes for the images (Martin's method to obtain them was manual)
     # then we can read them in here. I'm going to ignore them for now and assume that we are going to try
     # and use closely cropped images.
-    # Similarly not setting any excluded images
     #
     config.p2bb = None
-    config.exclude = None
 
     filename = datadir + "/train.csv"
     tagged = {}
