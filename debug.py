@@ -68,7 +68,7 @@ mappings = utils.getMappings(config, tagged)
 show_similar_image_example(config, mappings)
 show_images(config, list(mappings.h2p.values())[31])  # Show sample image
 
-train = utils.getTrainHashes(mappings.w2hs)
+train = utils.getTrainingHashes(mappings.w2hs)
 
 # Test on a batch of 32 with random costs.
 score = np.random.random_sample(size=(len(train), len(train)))

@@ -270,7 +270,7 @@ def get_standard(globals):
 def make_standard(globals, config, mappings):
     execution = Execution()
 
-    train = utils.getTrainHashes(mappings.w2hs)
+    train = utils.getTrainingHashes(mappings.w2hs)
 
     print("Training Images: ", len(train))
     if len(train) == 0:
