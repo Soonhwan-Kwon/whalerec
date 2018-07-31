@@ -30,6 +30,7 @@ class TrainingData(Sequence):
 
         self.globals = globals
         self.config = config
+        self.mappings = mappings
         self.train = train
         self.score = -score  # Maximizing the score is the same as minimuzing -score.
         self.steps = steps
