@@ -75,8 +75,8 @@ def calc_p2size(config, images):
     return p2size
 
 
-def p2size(config, images, test=False):
-    if test:
+def p2size(config, images, useCache=True):
+    if not useCache:
         return calc_p2size(config, images)
 
     p2size = deserialize('p2size.pickle')
@@ -121,8 +121,8 @@ def calc_p2h(config, images):
     return p2h
 
 
-def p2h(config, images, test=False):
-    if test:
+def p2h(config, images, useCache=True):
+    if not useCache:
         return calc_p2h(config, images)
 
     p2h = deserialize('p2h.pickle')
@@ -364,11 +364,11 @@ def getTrainData(datadir, test=None):
     return tagged
 
 
-def getConfig(datadir, images):
+def getConfig(datadir, images, useCache=True):
     config = Config(datadir)
 
-    config.p2size = p2size(config, images)
-    config.p2h = p2h(config, images)
+    config.p2size = p2size(config, images, useCache)
+    config.p2h = p2h(config, images, useCache)
 
     return config
 

@@ -106,6 +106,4 @@ Can create separate models with each set or one big model for all the sets.
 Isnt' the following line in id.py always going to create the same results? Cache?
 At the very least we should cache the entire config and mappings objects. And we don't/won't need to load all the tagged dictionary.
 
-    fknown = model.branch.predict_generator(FeatureGen(config, utils.hashes2images(known)), max_queue_size=20, workers=10, verbose=0)
-
-The only thing we should need is the h2ws from mappings. Right?
+    fknown = model.branch.predict_generator(FeatureGen(config, utils.hashes2images(mappings.h2p, known))), max_queue_size=20, workers=10, verbose=0)

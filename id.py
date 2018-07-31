@@ -83,7 +83,7 @@ else:
     submit = []
     submit = glob.glob(args.imagedir + "/*", recursive=True)
 
-submitConfig = utils.getConfig(args.imagedir, submit)
+submitConfig = utils.getConfig(args.imagedir, submit, False)
 
 print(known, submit)
 
@@ -92,7 +92,7 @@ if model is None:
     sys.exit()
 
 # Evaluate the model.
-fknown = model.branch.predict_generator(FeatureGen(globals, config, utils.hashes2images(known)), max_queue_size=20, workers=10, verbose=0)
+fknown = model.branch.predict_generator(FeatureGen(globals, config, utils.hashes2images(mappings.h2p, known)), max_queue_size=20, workers=10, verbose=0)
 fsubmit = model.branch.predict_generator(FeatureGen(globals, submitConfig, submit), max_queue_size=20, workers=10, verbose=0)
 score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)
 score = modelUtils.score_reshape(score, fknown, fsubmit)

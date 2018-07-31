@@ -235,7 +235,7 @@ def make_steps(globals, config, mappings, model, execution, train, step, ampl):
     random.shuffle(train)
 
     # Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
-    features = model.branch.predict_generator(FeatureGen(globals, config, utils.hashes2images(train), verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    features = model.branch.predict_generator(FeatureGen(globals, config, utils.hashes2images(mappings.h2p, train), verbose=verbose), max_queue_size=12, workers=6, verbose=0)
     score = model.head.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
     execution.score = score_reshape(score, features)
 
