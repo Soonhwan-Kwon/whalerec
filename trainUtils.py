@@ -33,8 +33,27 @@ class TrainingData(Sequence):
         self.score = -score  # Maximizing the score is the same as minimuzing -score.
         self.steps = steps
         self.batch_size = batch_size
-        for ts in config.w2ts.values():
-            idxs = [config.t2i[t] for t in ts]
+
+        train_set = set(train)
+        w2ts = {}  # Associate the image ids from train to each whale id.
+        for w, hs in config.w2hs.items():
+            for h in hs:
+                if h in train_set:
+                    if w not in w2ts:
+                        w2ts[w] = []
+                    if h not in w2ts[w]:
+                        w2ts[w].append(h)
+        for w, ts in w2ts.items():
+            w2ts[w] = np.array(ts)
+
+        self.w2ts = w2ts
+
+        t2i = {}  # The position in train of each training image id
+        for i, t in enumerate(train):
+            t2i[t] = i
+
+        for ts in w2ts.values():
+            idxs = [t2i[t] for t in ts]
             for i in idxs:
                 for j in idxs:
                     self.score[i, j] = 10000.0  # Set a large value for matching whales -- eliminates this potential pairing
@@ -50,11 +69,11 @@ class TrainingData(Sequence):
         c = np.zeros((size, 1), dtype=K.floatx())
         j = start // 2
         for i in range(0, size, 2):
-            a[i, :, :, :] = utils.read_cropped_image(self.config, self.match[j][0], True)
-            b[i, :, :, :] = utils.read_cropped_image(self.config, self.match[j][1], True)
+            a[i, :, :, :] = utils.read_cropped_image(self.config, self.config.h2p[self.match[j][0]], True)
+            b[i, :, :, :] = utils.read_cropped_image(self.config, self.config.h2p[self.match[j][1]], True)
             c[i, 0] = 1  # This is a match
-            a[i + 1, :, :, :] = utils.read_cropped_image(self.config, self.unmatch[j][0], True)
-            b[i + 1, :, :, :] = utils.read_cropped_image(self.config, self.unmatch[j][1], True)
+            a[i + 1, :, :, :] = utils.read_cropped_image(self.config, self.config.h2p[self.unmatch[j][0]], True)
+            b[i + 1, :, :, :] = utils.read_cropped_image(self.config, self.config.h2p[self.unmatch[j][1]], True)
             c[i + 1, 0] = 0  # Different whales
             j += 1
         return [a, b], c
@@ -85,7 +104,7 @@ class TrainingData(Sequence):
         y = np.arange(len(x), dtype=np.int32)
 
         # Compute a derangement for matching whales
-        for ts in self.config.w2ts.values():
+        for ts in self.w2ts.values():
             d = ts.copy()
             while True:
                 random.shuffle(d)

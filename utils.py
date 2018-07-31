@@ -1,5 +1,6 @@
 import platform
 import random
+import csv
 
 from os.path import isfile
 import numpy as np
@@ -22,7 +23,19 @@ import pickle
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
 from imagehash import phash
-from pandas import read_csv
+
+
+#
+# Don't put these in debug since that has matlab stuff that I don't want to import in the general case
+# as it fails on headless servers.
+#
+def debug_var(name, var):
+    if isinstance(var, list):
+        print(name + ":", "size:", len(var), "sample:", var[:5])
+    elif isinstance(var, dict):
+        print(name + ":", "size:", len(var), "sample:", list(var.items())[:5])
+    else:
+        print(name + ":", var)
 
 
 class Config(object):
@@ -153,6 +166,14 @@ def expand_path(datadir, p):
     return p
 
 
+def hashes2images(h2p, hashes):
+    images = []
+    for hash in hashes:
+        if hash in h2p:
+            images.append(h2p[hash])
+    return images
+
+
 def read_cropped_image(config, p, augment):
     """
     @param p : the name of the picture to read
@@ -161,9 +182,6 @@ def read_cropped_image(config, p, augment):
     """
     anisotropy = 2.15  # The horizontal compression ratio
 
-    # If an image id was given, convert to filename
-    if p in config.h2p:
-        p = config.h2p[p]
     size_x, size_y = config.p2size[p]
 
     # Determine the region of the original image we want to capture based on the bounding box.
@@ -280,14 +298,12 @@ def prefer(ps, p2size):
 
 def h2ws(p2h, tagged):
     h2ws = {}
-    new_whale = 'new_whale'
     for p, w in tagged.items():
-        if w != new_whale:  # Use only identified whales
-            h = p2h[p]
-            if h not in h2ws:
-                h2ws[h] = []
-            if w not in h2ws[h]:
-                h2ws[h].append(w)
+        h = p2h[p]
+        if h not in h2ws:
+            h2ws[h] = []
+        if w not in h2ws[h]:
+            h2ws[h].append(w)
     for h, ws in h2ws.items():
         if len(ws) > 1:
             h2ws[h] = sorted(ws)
@@ -314,33 +330,6 @@ def w2hs(config):
     return w2hs
 
 
-def map_train(config, train):
-    """
-    Couldn't figure out what to call this
-    """
-
-    w2ts = {}  # Associate the image ids from train to each whale id.
-    for w, hs in config.w2hs.items():
-        for h in hs:
-            if h in set(train):
-                if w not in w2ts:
-                    w2ts[w] = []
-                if h not in w2ts[w]:
-                    w2ts[w].append(h)
-    for w, ts in w2ts.items():
-        w2ts[w] = np.array(ts)
-
-    config.w2ts = w2ts
-
-    t2i = {}  # The position in train of each training image id
-    for i, t in enumerate(train):
-        t2i[t] = i
-
-    config.t2i = t2i
-
-    # print(len(train), len(config.w2ts))
-
-
 def getConfig(datadir, test=None):
     config = Config(datadir)
     config.img_shape = (384, 384, 1)  # The image shape used by the model
@@ -359,21 +348,32 @@ def getConfig(datadir, test=None):
     config.p2bb = None
     config.exclude = None
 
-    csvFile = datadir + "/train.csv"
-    tagged = dict([(p, w) for _, p, w in read_csv(csvFile).to_records()])
+    filename = datadir + "/train.csv"
+    tagged = {}
+    with open(filename, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader, None)  # skip the headers
+        for row in reader:
+            tagged[row[0]] = row[1]
 
     if test is not None:
         tagged = {k: tagged[k] for k in list(tagged)[:test]}
 
-    csvFile = datadir + "/sample_submission.csv"
-    submit = [p for _, p, _ in read_csv(csvFile).to_records()]
+    filename = datadir + "/sample_submission.csv"
+    submit = []
+    with open(filename, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader, None)  # skip the headers
+        for row in reader:
+            submit.append(row[0])
 
     if test is not None:
         submit = submit[:test]
 
     join = list(tagged.keys()) + submit
 
-    # print(len(tagged), len(submit), len(join), list(tagged.items())[:5], submit[:5])
+    debug_var("tagged", tagged)
+    debug_var("submit", submit)
 
     config.p2size = p2size(config, join, test)
 

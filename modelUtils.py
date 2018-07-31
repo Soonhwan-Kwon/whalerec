@@ -40,7 +40,6 @@ class FeatureGen(Sequence):
         super(FeatureGen, self).__init__()
 
         self.config = config
-        print(self.config.img_shape)
         self.data = data
         self.batch_size = batch_size
         self.verbose = verbose
@@ -51,6 +50,7 @@ class FeatureGen(Sequence):
         start = self.batch_size * index
         size = min(len(self.data) - start, self.batch_size)
         a = np.zeros((size,) + self.config.img_shape, dtype=K.floatx())
+
         for i in range(size):
             a[i, :, :, :] = utils.read_cropped_image(self.config, self.data[start + i], False)
         if self.verbose > 0:
@@ -225,15 +225,6 @@ def score_reshape(score, x, y=None):
     return m
 
 
-def compute_score(config, model, execution, train, verbose=1):
-    """
-    Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
-    """
-    features = model.branch.predict_generator(FeatureGen(config, train, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
-    score = model.head.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
-    execution.score = score_reshape(score, features)
-
-
 def make_steps(config, model, execution, train, step, ampl):
     """
     Perform training epochs
@@ -243,10 +234,10 @@ def make_steps(config, model, execution, train, step, ampl):
     # shuffle the training pictures
     random.shuffle(train)
 
-    utils.map_train(config, train)
-
-    # Compute the match score for each picture pair
-    compute_score(config, model, execution, train)
+    # Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
+    features = model.branch.predict_generator(FeatureGen(config, utils.hashes2images(train), verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    score = model.head.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    execution.score = score_reshape(score, features)
 
     # Train the model for 'step' epochs
     history = model.siamese.fit_generator(
@@ -256,7 +247,7 @@ def make_steps(config, model, execution, train, step, ampl):
     ).history
 
     execution.steps += step
-    print ("STEPS: ", execution.steps)
+    print("STEPS: ", execution.steps)
 
     # Collect history data
     history['epochs'] = execution.steps
@@ -287,11 +278,10 @@ def make_standard(config):
 
     print("Training Images: ", len(train))
     if len(train) == 0:
-        print ("No data to train on!")
+        print("No data to train on! Exiting!")
+        return
 
     random.shuffle(train)
-
-    utils.map_train(config, train)
 
     model = build(config.img_shape, 64e-5, 0)
     # head_model.summary()
@@ -301,7 +291,7 @@ def make_standard(config):
     make_steps(config, model, execution, train, 10, 1000)
     ampl = 100.0
     for _ in range(10):
-        print('noise ampl.  = ', ampl)
+        # print('noise ampl.  = ', ampl)
         make_steps(config, model, execution, train, 5, ampl)
         ampl = max(1.0, 100**-0.1 * ampl)
     # epoch -> 150
@@ -322,7 +312,7 @@ def make_standard(config):
     # epoch -> 300
     weights = model.siamese.get_weights()
 
-    model = build(64e-5, 0.0002)
+    model = build(config.img_shape, 64e-5, 0.0002)
     model.siamese.set_weights(weights)
 
     for _ in range(10):

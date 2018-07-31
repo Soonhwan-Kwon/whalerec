@@ -49,8 +49,6 @@ def show_results(a, b):
     imgs = [array_to_img(a[0]), array_to_img(b[0])]
     show_whale(imgs, per_row=2)
 
-    # 23 =========================================================
-
     # Second pair is for different whales
     imgs = [array_to_img(a[1]), array_to_img(b[1])]
     show_whale(imgs, per_row=2)
@@ -65,13 +63,14 @@ args = parser.parse_args()
 config = utils.getConfig(args.datadir, args.test)
 
 show_similar_image_example(config)
-show_images(config, list(config.p2size.keys())[31])  # Show sample image
+show_images(config, list(config.p2h.keys())[31])  # Show sample image
 
 
 data = utils.getData(config)
 
 # Test on a batch of 32 with random costs.
 score = np.random.random_sample(size=(len(data.train), len(data.train)))
+
 data = TrainingData(config, data.train, score)
 (a, b), c = data[0]
 print(a.shape, b.shape, c.shape)
