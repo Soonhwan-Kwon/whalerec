@@ -39,6 +39,7 @@ class FeatureGen(Sequence):
     def __init__(self, globals, config, data, batch_size=64, verbose=1):
         super(FeatureGen, self).__init__()
 
+        self.globals = globals
         self.config = config
         self.data = data
         self.batch_size = batch_size
