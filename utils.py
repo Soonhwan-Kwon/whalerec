@@ -373,10 +373,10 @@ def getConfig(datadir, images, useCache=True):
     return config
 
 
-def getTrainingHashes():
+def getTrainingHashes(w2hs):
     # Find the list of training images, keep only whales with at least two images.
     train = []  # A list of training image ids
-    for hs in config.w2hs.values():
+    for hs in w2hs.values():
         if len(hs) > 1:
             train += hs
     return train
