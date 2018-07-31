@@ -239,7 +239,7 @@ def make_steps(globals, config, mappings, model, execution, train, step, ampl):
     trainImages = utils.hashes2images(mappings.h2p, train)
 
     features = model.branch.predict_generator(FeatureGen(globals, config, trainImages, verbose=1), max_queue_size=12, workers=6, verbose=0)
-    score = model.head.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    score = model.head.predict_generator(ScoreGen(features, verbose=1), max_queue_size=12, workers=6, verbose=0)
     execution.score = score_reshape(score, features)
 
     # Train the model for 'step' epochs
