@@ -10,6 +10,8 @@ parser.add_argument('-d', '--datadir', dest='datadir')
 args = parser.parse_args()
 
 globals = utils.getGlobals()
-config = utils.getConfig(args.datadir, args.test)
+tagged = utils.getTrainData(args.datadir)
+config = utils.getConfig(args.datadir, list(tagged.keys()))
+mappings = utils.getMappings(config, tagged)
 
-modelUtils.make_standard(globals, config)
+modelUtils.make_standard(globals, config, mappings)

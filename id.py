@@ -62,17 +62,28 @@ parser.add_argument('-f', '--file', dest="file")
 args = parser.parse_args()
 
 globals = utils.getGlobals()
-config = utils.getConfig(args.datadir, args.test)
+tagged = utils.getTrainData(args.datadir)
+config = utils.getConfig(args.datadir, list(tagged.keys()))
+mappings = utils.getMappings(config, tagged)
 
-known = sorted(list(config.h2ws.keys()))
+known = sorted(list(mappings.h2ws.keys()))
 
 model = modelUtils.get_standard(globals)
 
+# filename = datadir + "/sample_submission.csv"
+# submit = []
+# with open(filename, newline='') as csvfile:
+#     reader = csv.reader(csvfile)
+#     next(reader, None)  # skip the headers
+#     for row in reader:
+#         submit.append(row[0])
 if args.file:
     submit = [args.file]
 else:
     submit = []
     submit = glob.glob(args.imagedir + "/*", recursive=True)
+
+submitConfig = utils.getConfig(args.imagedir, submit)
 
 print(known, submit)
 
@@ -82,9 +93,9 @@ if model is None:
 
 # Evaluate the model.
 fknown = model.branch.predict_generator(FeatureGen(globals, config, utils.hashes2images(known)), max_queue_size=20, workers=10, verbose=0)
-fsubmit = model.branch.predict_generator(FeatureGen(globals, config, submit), max_queue_size=20, workers=10, verbose=0)
+fsubmit = model.branch.predict_generator(FeatureGen(globals, submitConfig, submit), max_queue_size=20, workers=10, verbose=0)
 score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 
 # Generate the subsmission file.
-perform_id(h2ws, 0.99, submit)
+perform_id(mappings.h2ws, 0.99, submit)

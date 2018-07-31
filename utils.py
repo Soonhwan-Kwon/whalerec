@@ -45,9 +45,24 @@ class Globals(object):
 class Config(object):
     def __init__(self, datadir):
         self.datadir = datadir
+        #
+        # Just going to set this to an empty array. Martin determined which should be rotated manually by adding
+        # to the list as he found them. Going to just ignore these for now.
+        #
+        self.rotate = []
+        #
+        # If we want to include bounding boxes for the images (Martin's method to obtain them was manual)
+        # then we can read them in here. I'm going to ignore them for now and assume that we are going to try
+        # and use closely cropped images.
+        #
+        self.p2bb = None
 
     def filename(self, p):
         return expand_path(self.datadir, p)
+
+
+class Mappings(object):
+    pass
 
 
 def calc_p2size(config, images):
@@ -315,9 +330,9 @@ def h2ws(p2h, tagged):
     return h2ws
 
 
-def w2hs(config):
+def w2hs(h2ws):
     w2hs = {}
-    for h, ws in config.h2ws.items():
+    for h, ws in h2ws.items():
         if len(ws) == 1:  # Use only unambiguous pictures
             w = ws[0]
             if w not in w2hs:
@@ -335,21 +350,7 @@ def getGlobals():
     return Globals()
 
 
-def getConfig(datadir, test=None):
-    config = Config(datadir)
-
-    #
-    # Just going to set this to an empty array. Martin determined which should be rotated manually by adding
-    # to the list as he found them. Going to just ignore these for now.
-    #
-    config.rotate = []
-    #
-    # If we want to include bounding boxes for the images (Martin's method to obtain them was manual)
-    # then we can read them in here. I'm going to ignore them for now and assume that we are going to try
-    # and use closely cropped images.
-    #
-    config.p2bb = None
-
+def getTrainData(datadir, test=None):
     filename = datadir + "/train.csv"
     tagged = {}
     with open(filename, newline='') as csvfile:
@@ -360,40 +361,38 @@ def getConfig(datadir, test=None):
 
     if test is not None:
         tagged = {k: tagged[k] for k in list(tagged)[:test]}
+    return tagged
 
-    filename = datadir + "/sample_submission.csv"
-    submit = []
-    with open(filename, newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader, None)  # skip the headers
-        for row in reader:
-            submit.append(row[0])
 
-    if test is not None:
-        submit = submit[:test]
+def getConfig(datadir, images):
+    config = Config(datadir)
 
-    join = list(tagged.keys()) + submit
-
-    debug_var("tagged", tagged)
-    debug_var("submit", submit)
-
-    config.p2size = p2size(config, join, test)
-
-    config.p2h = p2h(config, join, test)
-
-    config.h2ps = unique_hashes(config.p2h)
-
-    # Notice how 25460 images use only 20913 distinct image ids.
-    # print(len(config.h2ps), list(config.h2ps.items())[:5])
-
-    config.h2p = {}
-    for h, ps in config.h2ps.items():
-        config.h2p[h] = prefer(ps, config.p2size)
-
-    # print(len(config.h2p), list(config.h2p.items())[:5])
-
-    config.h2ws = h2ws(config.p2h, tagged)
-
-    config.w2hs = w2hs(config)
+    config.p2size = p2size(config, images)
+    config.p2h = p2h(config, images)
 
     return config
+
+
+def getTrainingHashes():
+    # Find the list of training images, keep only whales with at least two images.
+    train = []  # A list of training image ids
+    for hs in config.w2hs.values():
+        if len(hs) > 1:
+            train += hs
+    return train
+
+
+def getMappings(config, tagged):
+    mappings = Mappings()
+
+    mappings.h2ps = unique_hashes(config.p2h)
+
+    mappings.h2p = {}
+    for h, ps in mappings.h2ps.items():
+        mappings.h2p[h] = prefer(ps, config.p2size)
+
+    mappings.h2ws = h2ws(config.p2h, tagged)
+
+    mappings.w2hs = w2hs(mappings.h2ws)
+
+    return mappings

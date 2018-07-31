@@ -225,7 +225,7 @@ def score_reshape(score, x, y=None):
     return m
 
 
-def make_steps(globals, config, model, execution, train, step, ampl):
+def make_steps(globals, config, mappings, model, execution, train, step, ampl):
     """
     Perform training epochs
     @param step Number of epochs to perform
@@ -241,7 +241,7 @@ def make_steps(globals, config, model, execution, train, step, ampl):
 
     # Train the model for 'step' epochs
     history = model.siamese.fit_generator(
-        TrainingData(globals, config, train, execution.score + ampl * np.random.random_sample(size=execution.score.shape), steps=step, batch_size=32),
+        TrainingData(globals, config, mappings, train, execution.score + ampl * np.random.random_sample(size=execution.score.shape), steps=step, batch_size=32),
         initial_epoch=execution.steps, epochs=execution.steps + step, max_queue_size=12, workers=6, verbose=0,
         callbacks=[TQDMCallback(leave_inner=True, metric_format='{value:0.3f}')]
     ).history
@@ -267,14 +267,10 @@ def get_standard(globals):
         return None
 
 
-def make_standard(globals, config):
+def make_standard(globals, config, mappings):
     execution = Execution()
 
-    # Find the list of training images, keep only whales with at least two images.
-    train = []  # A list of training image ids
-    for hs in config.w2hs.values():
-        if len(hs) > 1:
-            train += hs
+    train = utils.getTrainHashes(mappings.w2hs)
 
     print("Training Images: ", len(train))
     if len(train) == 0:
@@ -288,27 +284,27 @@ def make_standard(globals, config):
     # branch_model.summary()
 
     # epoch -> 10
-    make_steps(globals, config, model, execution, train, 10, 1000)
+    make_steps(globals, config, mappings, model, execution, train, 10, 1000)
     ampl = 100.0
     for _ in range(10):
         # print('noise ampl.  = ', ampl)
-        make_steps(globals, config, model, execution, train, 5, ampl)
+        make_steps(globals, config, mappings, model, execution, train, 5, ampl)
         ampl = max(1.0, 100**-0.1 * ampl)
     # epoch -> 150
     for _ in range(18):
-        make_steps(globals, config, model, execution, train, 5, 1.0)
+        make_steps(globals, config, mappings, model, execution, train, 5, 1.0)
     # epoch -> 200
     set_lr(model.siamese, 16e-5)
     for _ in range(10):
-        make_steps(globals, config, model, execution, train, 5, 0.5)
+        make_steps(globals, config, mappings, model, execution, train, 5, 0.5)
     # epoch -> 240
     set_lr(model.siamese, 4e-5)
     for _ in range(8):
-        make_steps(globals, config, model, execution, train, 5, 0.25)
+        make_steps(globals, config, mappings, model, execution, train, 5, 0.25)
     # epoch -> 250
     set_lr(model.siamese, 1e-5)
     for _ in range(2):
-        make_steps(globals, config, model, execution, train, 5, 0.25)
+        make_steps(globals, config, mappings, model, execution, train, 5, 0.25)
     # epoch -> 300
     weights = model.siamese.get_weights()
 
@@ -316,17 +312,17 @@ def make_standard(globals, config):
     model.siamese.set_weights(weights)
 
     for _ in range(10):
-        make_steps(globals, config, model, execution, train, 5, 1.0)
+        make_steps(globals, config, mappings, model, execution, train, 5, 1.0)
     # epoch -> 350
     set_lr(model.siamese, 16e-5)
     for _ in range(10):
-        make_steps(globals, config, model, execution, train, 5, 0.5)
+        make_steps(globals, config, mappings, model, execution, train, 5, 0.5)
     # epoch -> 390
     set_lr(model.siamese, 4e-5)
     for _ in range(8):
-        make_steps(globals, config, model, execution, train, 5, 0.25)
+        make_steps(globals, config, mappings, model, execution, train, 5, 0.25)
     # epoch -> 400
     set_lr(model.siamese, 1e-5)
     for _ in range(2):
-        make_steps(globals, config, model, execution, train, 5, 0.25)
+        make_steps(globals, config, mappings, model, execution, train, 5, 0.25)
     model.save(model_name)
