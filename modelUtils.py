@@ -237,10 +237,7 @@ def make_steps(globals, config, mappings, model, execution, train, step, ampl):
     # Compute the score matrix by scoring every pictures from the training set against every other picture O(n^2).
     trainImages = utils.hashes2images(mappings.h2p, train)
 
-    utils.debug_var("train", train)
-    utils.debug_var("trainImages", trainImages)
-
-    features = model.branch.predict_generator(FeatureGen(globals, config, trainImages, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
+    features = model.branch.predict_generator(FeatureGen(globals, config, trainImages, verbose=1), max_queue_size=12, workers=6, verbose=0)
     score = model.head.predict_generator(ScoreGen(features, verbose=verbose), max_queue_size=12, workers=6, verbose=0)
     execution.score = score_reshape(score, features)
 
