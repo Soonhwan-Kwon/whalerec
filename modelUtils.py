@@ -7,7 +7,7 @@ from keras import regularizers
 from keras.optimizers import Adam
 from keras.engine.topology import Input
 from keras.layers import Activation, Add, BatchNormalization, Concatenate, Conv2D, Dense, Flatten, GlobalMaxPooling2D, Lambda, MaxPooling2D, Reshape
-from keras.models import Model
+from keras.models import Model, load_model
 from keras import backend as K
 from keras.utils import Sequence
 from keras_tqdm import TQDMCallback
@@ -278,7 +278,9 @@ def make_steps(globals, config, mappings, model, execution, train, steps, ampl):
 def get_standard(globals):
     if isfile(standard_model):
         model = build(globals.img_shape, 64e-5, 0)
-        tmp = keras.models.load_model(standard_model)
+        print("Loading model...")
+        tmp = load_model(standard_model)
+        print("Model loaded")
         model.siamese.set_weights(tmp.get_weights())
         return model
     else:
