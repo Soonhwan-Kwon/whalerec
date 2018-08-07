@@ -78,6 +78,7 @@ def serialize(dir, obj, objname):
         os.makedirs(dir)
 
     filename = os.path.join(dir, objname + ".pickle")
+    print("Serializing %s" % filename)
     with open(filename, 'wb') as file:
         pickle.dump(obj, file)
 
@@ -89,6 +90,7 @@ def deserialize_set(setname, objname):
 def deserialize(dir, objname):
     filename = os.path.join(dir, objname + ".pickle")
     if os.path.isfile(filename):
+        print("Deserializing %s" % filename)
         with open(filename, 'rb') as file:
             return pickle.load(file)
     else:
