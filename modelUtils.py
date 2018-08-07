@@ -18,6 +18,8 @@ import numpy as np
 from trainUtils import TrainingData
 from globals import IMG_SHAPE
 
+FKNOWN = "fknown"
+
 
 class Execution(object):
     def __init__(self):
@@ -234,14 +236,14 @@ def make_fknown(setname, steps=None):
 
 
 def serialize_fknown(setname, fknown, steps=None):
-    objname = globals.FKNOWN
+    objname = FKNOWN
     if args.stage is not None:
         objname += args.stage
     serialize_set(setname, fknown, objname)
 
 
 def deserialize_fknown(setname, steps=None):
-    objname = globals.FKNOWN
+    objname = FKNOWN
     if args.stage is not None:
         objname += args.stage
     deserialize_set(setname, objname)
