@@ -224,7 +224,7 @@ def score_reshape(score, x, y=None):
     return m
 
 
-def make_steps(setname, setname, imageset, mappings, model, execution, train, steps, ampl):
+def make_steps(setname, imageset, mappings, model, execution, train, steps, ampl):
     """
     Perform training epochs
     @param step Number of epochs to perform
