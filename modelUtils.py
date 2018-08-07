@@ -292,7 +292,7 @@ def get_standard(setname, steps=None):
         model.siamese.set_weights(tmp.get_weights())
         return model
     else:
-        throw FileNotFoundError("Model file [" + filename + "] not found.")
+        raise ValueError("Model file [" + filename + "] not found.")
 
 
 def make_standard(setname, imageset, mappings, test=False):
