@@ -9,6 +9,7 @@ import modelUtils
 from modelUtils import FeatureGen, ScoreGen
 
 from tqdm import tqdm
+import numpy as np
 
 new_whale = 'new_whale'
 
