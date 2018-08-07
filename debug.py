@@ -10,7 +10,7 @@ args = parser.parse_args()
 imageset = utils.getImageSet(args.name)
 mappings = utils.getMappings(args.name)
 
-utils.debug_var("h2ps", mappings.h2ps)
+# utils.debug_var("h2ps", mappings.h2ps)
 utils.debug_var("h2p", mappings.h2p)
 utils.debug_var("h2ws", mappings.h2ws)
 utils.debug_var("w2hs", mappings.w2hs)

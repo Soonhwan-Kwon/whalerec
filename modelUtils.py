@@ -232,6 +232,7 @@ def make_fknown(setname, steps=None):
     model = get_standard(setname, steps)
 
     trainedData = utils.hashes2images(mappings.h2p, sorted(list(mappings.h2ws.keys())))
+    utils.debug_var("trainedData", trainedData)
     return model.branch.predict_generator(FeatureGen(imageset, trainedData), max_queue_size=20, workers=10, verbose=0)
 
 
