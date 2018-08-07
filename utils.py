@@ -195,8 +195,7 @@ def getGlobals():
     return Globals()
 
 
-def getTrainData(datadir, test=None):
-    filename = datadir + "/train.csv"
+def getTrainData(filename, test=None):
     tagged = {}
     with open(filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
@@ -207,6 +206,10 @@ def getTrainData(datadir, test=None):
     if test is not None:
         tagged = {k: tagged[k] for k in list(tagged)[:test]}
     return tagged
+
+
+def getMappings(name):
+    return deserialize(os.path.join("sets", name, "mappings.pickle"))
 
 
 def getImageSet(name):
@@ -275,6 +278,7 @@ def prepImageSet(name, datadir, images, useCache=True):
         imageset.infomap[imagename] = hash
 
     serialize(imageset, os.path.join("sets", name, "imageset.pickle"))
+    return imageset
 
 
 def getTrainingHashes(w2hs):
@@ -286,7 +290,7 @@ def getTrainingHashes(w2hs):
     return train
 
 
-def getMappings(imageset, tagged):
+def prepMappings(imageset, tagged):
     mappings = Mappings()
 
     h2ps = {}
@@ -321,6 +325,7 @@ def getMappings(imageset, tagged):
             h2ws[h] = []
         if w not in h2ws[h]:
             h2ws[h].append(w)
+
     for h, ws in h2ws.items():
         if len(ws) > 1:
             h2ws[h] = sorted(ws)
@@ -341,4 +346,5 @@ def getMappings(imageset, tagged):
     mappings.h2ws = h2ws
     mappings.w2hs = w2hs
 
+    serialize(mappings, os.path.join("sets", name, "mappings.pickle"))
     return mappings

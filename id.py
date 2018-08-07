@@ -56,18 +56,15 @@ def perform_id(h2ws, score, threshold, data):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--test', action="store", type=int)  # Number of records to test with
-#
-# TODO: I think this will become the directory where the model and any supporting pickle files are stored.
-#
-parser.add_argument('-d', '--datadir', dest='datadir')
+parser.add_argument('-n', '--name', dest='name')
 parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
 args = parser.parse_args()
 
 globals = utils.getGlobals()
-tagged = utils.getTrainData(args.datadir)
-imageset = utils.getImageSet(args.datadir, list(tagged.keys()))
-mappings = utils.getMappings(imageset, tagged)
+
+imageset = utils.getImageSet(args.name)
+mappings = utils.getMappings(args.name)
 
 model = modelUtils.get_standard(globals)
 
