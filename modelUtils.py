@@ -18,8 +18,6 @@ import numpy as np
 from trainUtils import TrainingData
 from globals import IMG_SHAPE
 
-FKNOWN = "fknown"
-
 
 class Execution(object):
     def __init__(self):
@@ -236,18 +234,18 @@ def make_fknown(setname, steps=None):
     return model.branch.predict_generator(FeatureGen(imageset, trainedData), max_queue_size=20, workers=10, verbose=0)
 
 
+def name_fknown(steps=None):
+    if steps is None:
+        return "fknown"
+    return "fknown-%s" % str(steps)
+
+
 def serialize_fknown(setname, fknown, steps=None):
-    objname = FKNOWN
-    if steps is not None:
-        objname += str(steps)
-    utils.serialize_set(setname, fknown, objname)
+    utils.serialize_set(setname, fknown, name_fknown(steps))
 
 
 def deserialize_fknown(setname, steps=None):
-    objname = FKNOWN
-    if steps is not None:
-        objname += str(steps)
-    utils.deserialize_set(setname, objname)
+    utils.deserialize_set(setname, name_fknown(steps))
 
 
 def make_steps(imageset, mappings, model, execution, train, steps, ampl):
@@ -297,10 +295,12 @@ def make_steps(imageset, mappings, model, execution, train, steps, ampl):
 
 
 def get_model_file(setname, type, steps=None):
-    filename = os.path.join(utils.set_directory(setname), type + ".model")
-    if steps is not None:
-        filename = filename + "." + str(steps)
-    return filename
+    filename = type + ".model"
+    if steps is None:
+        filename = type
+    else:
+        filename = "%s-%s" % (type, str(steps))
+    return os.path.join(utils.set_directory(setname), filename + ".model")
 
 
 def save_standard(setname, model, steps=None):
