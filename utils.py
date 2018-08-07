@@ -94,6 +94,7 @@ def deserialize(dir, objname):
         with open(filename, 'rb') as file:
             return pickle.load(file)
     else:
+        print("No file [%s] found" % filename)
         return None
 
 

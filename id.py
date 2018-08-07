@@ -7,7 +7,7 @@ import globals
 import utils
 import modelUtils
 
-from modalUtils import FeatureGen, ScoreGen
+from modelUtils import FeatureGen, ScoreGen
 
 new_whale = 'new_whale'
 
@@ -99,9 +99,12 @@ if args.test:
 else:
     submitImageset = utils.prepImageSet(args.imagedir, submit)
 
+mappings = utils.getMappings(setname)
+
 # Save fknown in model directory as pickle so that we only have to run this once.
 # Again, do the keys have to be sorted here? Saves time? If we cache it I guess that doesn't matter
 # Now run prep_id.py first on the trained model before running any id requests.
+# UPDATE: Getting None for deseriazilation
 # fknown = modelUtils.make_fknown(setname, args.stage)
 fknown = modelUtils.deserialize_fknown(setname, args.stage)
 
@@ -110,5 +113,4 @@ score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=2
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 
 
-mappings = utils.getMappings(setname)
 perform_id(mappings.h2ws, score, 0.99, submit)
