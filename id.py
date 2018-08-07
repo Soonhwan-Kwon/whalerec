@@ -7,10 +7,12 @@ import globals
 import utils
 import modelUtils
 
+from modalUtils import FeatureGen, ScoreGen
+
 new_whale = 'new_whale'
 
 
-def perform_id(h2ws, score, threshold, data):
+def perform_id(h2ws, score, threshold, images):
     """
     @param threshold the score given to 'new_whale'
     @param filename the submission file name
@@ -21,37 +23,37 @@ def perform_id(h2ws, score, threshold, data):
     vtop = 0
     vhigh = 0
     pos = [0, 0, 0, 0, 0, 0]
-    for i, p in enumerate(tqdm(data)):
-        t = []
-        s = set()
-        a = score[i, :]
-        for j in list(reversed(np.argsort(a))):
-            h = known[j]
-            if a[j] < threshold and new_whale not in s:
-                pos[len(t)] += 1
-                s.add(new_whale)
-                t.append(new_whale)
-                if len(t) == 5:
+    for ii, img in enumerate(tqdm(images)):
+        whalelist = []
+        whaleset = set()
+        scores = score[ii, :]
+        for jj in list(reversed(np.argsort(scores))):
+            hash = known[jj]
+            if scores[jj] < threshold and new_whale not in whaleset:
+                pos[len(whalelist)] += 1
+                whaleset.add(new_whale)
+                whalelist.append(new_whale)
+                if len(whalelist) == 5:
                     break
 
-            for w in h2ws[h]:
-                assert w != new_whale
-                if w not in s:
-                    if a[j] > 1.0:
+            for whale in h2ws[hash]:
+                assert whale != new_whale
+                if whale not in whaleset:
+                    if scores[jj] > 1.0:
                         vtop += 1
-                    elif a[j] >= threshold:
+                    elif scores[jj] >= threshold:
                         vhigh += 1
-                    s.add(w)
-                    t.append(w)
-                    if len(t) == 5:
+                    whaleset.add(whale)
+                    whalelist.append(whale)
+                    if len(whalelist) == 5:
                         break
-            if len(t) == 5:
+            if len(whalelist) == 5:
                 break
-        if new_whale not in s:
+        if new_whale not in whaleset:
             pos[5] += 1
-        assert len(t) == 5 and len(s) == 5
+        assert len(whalelist) == 5 and len(whaleset) == 5
 
-        print(p + ',' + ' '.join(t[:5]) + '\n')
+        print(img + ',' + ' '.join(whalelist[:5]) + '\n')
     # return vtop, vhigh, pos
 
 
@@ -89,7 +91,7 @@ else:
 # repeat this iding very quickly. So we first check to see if we have already created
 # the imageset pickle
 #
-if test:
+if args.test:
     submitImageset = utils.deserialize(args.imagedir, globals.IMAGESET)
     if submitImageset is None:
         submitImageset = utils.prepImageSet(args.imagedir, submit)
