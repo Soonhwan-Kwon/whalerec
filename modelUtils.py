@@ -296,7 +296,7 @@ def make_steps(setname, imageset, mappings, model, execution, train, steps, ampl
 
 
 def get_model_file(setname, type, steps=None):
-    filename = os.path.file(utils.set_directory(setname), type + ".model")
+    filename = os.path.join(utils.set_directory(setname), type + ".model")
     if steps is not None:
         filename = filename + "." + steps
     return filename
@@ -331,15 +331,15 @@ def make_standard(setname, imageset, mappings, test=False):
     random.shuffle(train)
 
     model = build(64e-5, 0)
-    # head_model.summary()
-    # branch_model.summary()
+    # model.head.summary()
+    # model.branch.summary()
 
     # epoch -> 10
     if test:
-        make_steps(setname, imageset, mappings, model, execution, train, 2, 1000)
+        make_steps(setname, imageset, mappings, model, execution, train, 1, 1000)
         save_standard(setname, model, execution.steps)
 
-        make_steps(setname, imageset, mappings, model, execution, train, 2, 100.0)
+        make_steps(setname, imageset, mappings, model, execution, train, 1, 100.0)
     else:
         make_steps(setname, imageset, mappings, model, execution, train, 10, 1000)
         save_standard(setname, model, execution.steps)
