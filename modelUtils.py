@@ -240,14 +240,14 @@ def serialize_fknown(setname, fknown, steps=None):
     objname = FKNOWN
     if steps is not None:
         objname += str(steps)
-    serialize_set(setname, fknown, objname)
+    utils.serialize_set(setname, fknown, objname)
 
 
 def deserialize_fknown(setname, steps=None):
     objname = FKNOWN
     if steps is not None:
         objname += str(steps)
-    deserialize_set(setname, objname)
+    utils.deserialize_set(setname, objname)
 
 
 def make_steps(imageset, mappings, model, execution, train, steps, ampl):
