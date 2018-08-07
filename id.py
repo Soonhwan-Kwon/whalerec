@@ -1,6 +1,6 @@
 import sys
 import glob
-
+import json
 import argparse
 
 import globals
@@ -131,4 +131,6 @@ score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=2
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 
 
-perform_id(mappings.h2ws, score, args.threshold, submit)
+results = perform_id(mappings.h2ws, score, args.threshold, submit)
+
+print(json.dumps(results))
