@@ -238,15 +238,15 @@ def make_fknown(setname, steps=None):
 
 def serialize_fknown(setname, fknown, steps=None):
     objname = FKNOWN
-    if args.stage is not None:
-        objname += args.stage
+    if steps is not None:
+        objname += str(steps)
     serialize_set(setname, fknown, objname)
 
 
 def deserialize_fknown(setname, steps=None):
     objname = FKNOWN
-    if args.stage is not None:
-        objname += args.stage
+    if steps is not None:
+        objname += str(steps)
     deserialize_set(setname, objname)
 
 
