@@ -290,7 +290,7 @@ def getTrainingHashes(w2hs):
     return train
 
 
-def prepMappings(imageset, tagged):
+def prepMappings(name, imageset, tagged):
     mappings = Mappings()
 
     h2ps = {}
