@@ -42,7 +42,7 @@ def perform_id(h2ws, score, threshold, images):
                 #     break
 
             if scores[jj] < threshold:
-                return result
+                return break
 
             hash = known[jj]
             for whale in h2ws[hash]:
@@ -134,6 +134,5 @@ score = modelUtils.score_reshape(score, fknown, fsubmit)
 
 results = perform_id(mappings.h2ws, score, args.threshold, submit)
 
-print(results)
 json_data = json.dumps(results)
 print(json_data)
