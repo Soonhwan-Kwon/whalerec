@@ -77,14 +77,13 @@ def serialize(obj, setname, objname):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    os.path.join(directory, objname + ".pickle")
+    filename = os.path.join(directory, objname + ".pickle")
     with open(filename, 'wb') as file:
         pickle.dump(obj, file)
 
 
 def deserialize(setname, name):
-    directory = os.path.join("sets", setname)
-    filename = os.path.join(directory, name + ".pickle")
+    filename = os.path.join("sets", setname, name + ".pickle")
     if os.path.isfile(filename):
         with open(filename, 'rb') as file:
             return pickle.load(file)
