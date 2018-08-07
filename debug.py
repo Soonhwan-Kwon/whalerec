@@ -10,8 +10,6 @@ from train import TrainingData
 
 import numpy as np
 
-globals = utils.getGlobals()
-
 
 def show_whale(imgs, per_row=2):
     n = len(imgs)
@@ -40,8 +38,8 @@ def show_whale(imgs, per_row=2):
 def show_images(imageset, p):
     imgs = [
         pil_image.open(imageset.filename(p)),
-        array_to_img(utils.read_cropped_image(globals, imageset, p, False)),
-        array_to_img(utils.read_cropped_image(globals, imageset, p, True))
+        array_to_img(utils.read_cropped_image(imageset, p, False)),
+        array_to_img(utils.read_cropped_image(imageset, p, True))
     ]
     show_whale(imgs, per_row=3)
 
@@ -73,7 +71,7 @@ train = utils.getTrainingHashes(mappings.w2hs)
 # Test on a batch of 32 with random costs.
 score = np.random.random_sample(size=(len(train), len(train)))
 
-data = TrainingData(globals, imageset, mappings, train, score)
+data = TrainingData(imageset, mappings, train, score)
 (a, b), c = data[0]
 print(a.shape, b.shape, c.shape)
 

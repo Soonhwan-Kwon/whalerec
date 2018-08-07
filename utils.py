@@ -24,6 +24,8 @@ import pickle
 from tqdm import tqdm
 from imagehash import phash
 
+from globals import IMG_SHAPE
+
 
 #
 # Don't put these in debug since that has matlab stuff that I don't want to import in the general case
@@ -36,10 +38,6 @@ def debug_var(name, var):
         print(name + ":", "size:", len(var), "sample:", list(var.items())[:5])
     else:
         print(name + ":", var)
-
-
-class Globals(object):
-    img_shape = (384, 384, 1)  # The image shape used by the model
 
 
 class ImageInfo(object):
@@ -113,7 +111,7 @@ def hashes2images(h2p, hashes):
     return images
 
 
-def read_cropped_image(globals, imageset, p, augment):
+def read_cropped_image(imageset, p, augment):
     """
     @param p : the name of the picture to read
     @param augment: True/False if data augmentation should be performed, True for training, False for validation
@@ -168,8 +166,8 @@ def read_cropped_image(globals, imageset, p, augment):
         x1 += dx
 
     # Generate the transformation matrix
-    trans = np.array([[1, 0, -0.5 * globals.img_shape[0]], [0, 1, -0.5 * globals.img_shape[1]], [0, 0, 1]])
-    trans = np.dot(np.array([[(y1 - y0) / globals.img_shape[0], 0, 0], [0, (x1 - x0) / globals.img_shape[1], 0], [0, 0, 1]]), trans)
+    trans = np.array([[1, 0, -0.5 * IMG_SHAPE[0]], [0, 1, -0.5 * IMG_SHAPE[1]], [0, 0, 1]])
+    trans = np.dot(np.array([[(y1 - y0) / IMG_SHAPE[0], 0, 0], [0, (x1 - x0) / IMG_SHAPE[1], 0], [0, 0, 1]]), trans)
     if augment:
         trans = np.dot(build_transform(
             random.uniform(-5, 5),
@@ -188,17 +186,13 @@ def read_cropped_image(globals, imageset, p, augment):
     matrix = trans[:2, :2]
     offset = trans[:2, 2]
     img = img.reshape(img.shape[:-1])
-    img = affine_transform(img, matrix, offset, output_shape=globals.img_shape[:-1], order=1, mode='constant', cval=np.average(img))
-    img = img.reshape(globals.img_shape)
+    img = affine_transform(img, matrix, offset, output_shape=IMG_SHAPE[:-1], order=1, mode='constant', cval=np.average(img))
+    img = img.reshape(IMG_SHAPE)
 
     # Normalize to zero mean and unit variance
     img -= np.mean(img, keepdims=True)
     img /= np.std(img, keepdims=True) + K.epsilon()
     return img
-
-
-def getGlobals():
-    return Globals()
 
 
 def getTrainData(filename, test=None):

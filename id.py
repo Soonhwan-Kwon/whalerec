@@ -61,12 +61,10 @@ parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
 args = parser.parse_args()
 
-globals = utils.getGlobals()
-
 imageset = utils.getImageSet(args.name)
 mappings = utils.getMappings(args.name)
 
-model = modelUtils.get_standard(globals)
+model = modelUtils.get_standard()
 
 # filename = datadir + "/sample_submission.csv"
 # submit = []
@@ -90,9 +88,9 @@ if model is None:
 # TODO: Save fknown in model directory as pickle so that we only have to run this once.
 # Again, do the keys have to be sorted here? Saves time? If we cache it I guess that doesn't matter
 trainedData = utils.hashes2images(mappings.h2p, sorted(list(mappings.h2ws.keys())))
-fknown = model.branch.predict_generator(FeatureGen(globals, imageset, trainedData), max_queue_size=20, workers=10, verbose=0)
+fknown = model.branch.predict_generator(FeatureGen(imageset, trainedData), max_queue_size=20, workers=10, verbose=0)
 
-fsubmit = model.branch.predict_generator(FeatureGen(globals, submitImageset, submit), max_queue_size=20, workers=10, verbose=0)
+fsubmit = model.branch.predict_generator(FeatureGen(submitImageset, submit), max_queue_size=20, workers=10, verbose=0)
 score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 

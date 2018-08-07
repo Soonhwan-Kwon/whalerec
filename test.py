@@ -13,7 +13,6 @@ parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
 args = parser.parse_args()
 
-globals = utils.getGlobals()
 tagged = utils.getTrainData(args.datadir)
 imageset = utils.getImageSet(args.datadir, list(tagged.keys()))
 mappings = utils.getMappings(imageset, tagged)
