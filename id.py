@@ -42,7 +42,7 @@ def perform_id(h2ws, score, threshold, images):
                 #     break
 
             if scores[jj] < threshold:
-                return break
+                break
 
             hash = known[jj]
             for whale in h2ws[hash]:
