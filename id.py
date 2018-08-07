@@ -11,52 +11,66 @@ from modelUtils import FeatureGen, ScoreGen
 from tqdm import tqdm
 import numpy as np
 
-new_whale = 'new_whale'
+# new_whale = 'new_whale'
 
 
 def perform_id(h2ws, score, threshold, images):
-    """
-    @param threshold the score given to 'new_whale'
-    @param filename the submission file name
-    """
     # TODO: Check if this needs to be sorted. Saves time?
+    # I think the order might need to match that of the IDing process so that it matches the score array.
+    # Which would match this line in modelUtils
+    #     trainedData = utils.hashes2images(mappings.h2p, sorted(list(mappings.h2ws.keys())))
     known = sorted(list(h2ws.keys()))
 
-    vtop = 0
-    vhigh = 0
-    pos = [0, 0, 0, 0, 0, 0]
+    results = []
+    # vtop = 0
+    # vhigh = 0
+    # pos = [0, 0, 0, 0, 0, 0]
     for ii, img in enumerate(tqdm(images)):
-        whalelist = []
+        result = {}
+        result['image'] = img
+
+        # whalelist = []
         whaleset = set()
         scores = score[ii, :]
+        matches = []
         for jj in list(reversed(np.argsort(scores))):
+            # if scores[jj] < threshold and new_whale not in whaleset:
+            #     pos[len(whalelist)] += 1
+            #     whaleset.add(new_whale)
+            #     whalelist.append(new_whale)
+                # if len(whalelist) == 5:
+                #     break
+
+            if scores[jj] < threshold:
+                return result
+
             hash = known[jj]
-            if scores[jj] < threshold and new_whale not in whaleset:
-                pos[len(whalelist)] += 1
-                whaleset.add(new_whale)
-                whalelist.append(new_whale)
-                if len(whalelist) == 5:
-                    break
-
             for whale in h2ws[hash]:
-                assert whale != new_whale
+                # assert whale != new_whale
                 if whale not in whaleset:
-                    if scores[jj] > 1.0:
-                        vtop += 1
-                    elif scores[jj] >= threshold:
-                        vhigh += 1
+                    # if scores[jj] > 1.0:
+                    #     vtop += 1
+                    # elif scores[jj] >= threshold:
+                    #     vhigh += 1
                     whaleset.add(whale)
-                    whalelist.append(whale)
-                    if len(whalelist) == 5:
-                        break
-            if len(whalelist) == 5:
-                break
-        if new_whale not in whaleset:
-            pos[5] += 1
-        assert len(whalelist) == 5 and len(whaleset) == 5
+                    match = {}
+                    match['name'] = whale
+                    match['score'] = scores[jj]
+                    matches.append(match)
+                    # whalelist.append(whale)
+                    # if len(whalelist) == 5:
+                    #     break
+            # if len(whalelist) == 5:
+            #     break
+        # if new_whale not in whaleset:
+        #     pos[5] += 1
+        # assert len(whalelist) == 5 and len(whaleset) == 5
 
-        print(img + ',' + ' '.join(whalelist[:5]) + '\n')
-    # return vtop, vhigh, pos
+        result['matches'] = matches
+        results.append(result)
+        # print(img + ',' + ' '.join(whalelist[:5]) + '\n')
+    # return vtop, vhigh, po
+    return results
 
 
 parser = argparse.ArgumentParser()
@@ -65,6 +79,7 @@ parser.add_argument('-s', '--stage', action="store", type=int)  # Number of step
 parser.add_argument('-n', '--name', dest='name')
 parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
+parser.add_argument('--threshold', dest="threshold", default=0.99, type=float)
 args = parser.parse_args()
 
 setname = args.name
@@ -116,4 +131,4 @@ score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=2
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 
 
-perform_id(mappings.h2ws, score, 0.99, submit)
+perform_id(mappings.h2ws, score, args.threshold, submit)
