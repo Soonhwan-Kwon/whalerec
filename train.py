@@ -11,14 +11,16 @@ parser.add_argument('-d', '--datadir', dest='datadir')
 parser.add_argument('-f' '--file', dest="csvfile")
 args = parser.parse_args()
 
-imageset = utils.getImageSet(args.name)
-mappings = utils.getMappings(args.name)
+setname = args.name
+
+imageset = utils.getImageSet(setname)
+mappings = utils.getMappings(setname)
 
 if imageset is None or mappings is None:
     tagged = utils.getTrainData(args.csvfile)
     if imageset is None:
-        imageset = utils.prepImageSet(args.name, args.datadir, list(tagged.keys()))
+        imageset = utils.prepImageSet(setname, args.datadir, list(tagged.keys()))
     if mappings is None:
-        mappings = utils.prepMappings(args.name, imageset, tagged)
+        mappings = utils.prepMappings(setname, imageset, tagged)
 
-modelUtils.make_standard(imageset, mappings, args.test)
+modelUtils.make_standard(setname, imageset, mappings, args.test)

@@ -70,8 +70,12 @@ class Mappings(object):
     pass
 
 
+def set_directory(setname):
+    return os.path.join("sets", setname)
+
+
 def serialize(obj, setname, objname):
-    directory = os.path.join("sets", setname)
+    directory = set_directory(setname)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -81,7 +85,7 @@ def serialize(obj, setname, objname):
 
 
 def deserialize(setname, name):
-    filename = os.path.join("sets", setname, name + ".pickle")
+    filename = os.path.join(set_directory(setname), name + ".pickle")
     if os.path.isfile(filename):
         with open(filename, 'rb') as file:
             return pickle.load(file)

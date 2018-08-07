@@ -18,8 +18,6 @@ import numpy as np
 from trainUtils import TrainingData
 from globals import IMG_SHAPE
 
-standard_model = 'standard.model'
-
 
 class Execution(object):
     def __init__(self):
@@ -112,7 +110,7 @@ def subblock(x, filter, **kwargs):
     return y
 
 
-def build(IMG_SHAPE, lr, l2, activation='sigmoid'):
+def build(lr, l2, activation='sigmoid'):
 
     ##############
     # BRANCH MODEL
@@ -226,7 +224,7 @@ def score_reshape(score, x, y=None):
     return m
 
 
-def make_steps(imageset, mappings, model, execution, train, steps, ampl):
+def make_steps(setname, setname, imageset, mappings, model, execution, train, steps, ampl):
     """
     Perform training epochs
     @param step Number of epochs to perform
@@ -271,20 +269,30 @@ def make_steps(imageset, mappings, model, execution, train, steps, ampl):
     print(history['epochs'], history['lr'], history['ms'])
     execution.histories.append(history)
 
-    model.siamese.save(standard_model)
+    save_standard(setname, model)
 
 
-def get_standard():
-    if isfile(standard_model):
-        model = build(IMG_SHAPE, 64e-5, 0)
-        tmp = load_model(standard_model)
+def get_model_file(setname, type):
+    return os.path.file(utils.set_directory(setname), type + ".model")
+
+
+def save_standard(setname, model):
+    filename = get_model_file(setname, "standard")
+    model.siamese.save(filename)
+
+
+def get_standard(setname):
+    filename = get_model_file(setname, "standard")
+    if isfile(filename):
+        model = build(64e-5, 0)
+        tmp = load_model(filename)
         model.siamese.set_weights(tmp.get_weights())
         return model
     else:
-        return None
+        throw FileNotFoundError("Model file [" + filename + "] not found.")
 
 
-def make_standard(imageset, mappings, test=False):
+def make_standard(setname, imageset, mappings, test=False):
     execution = Execution()
 
     train = utils.getTrainingHashes(mappings.w2hs)
@@ -296,55 +304,55 @@ def make_standard(imageset, mappings, test=False):
 
     random.shuffle(train)
 
-    model = build(IMG_SHAPE, 64e-5, 0)
+    model = build(64e-5, 0)
     # head_model.summary()
     # branch_model.summary()
 
     # epoch -> 10
     if test:
-        make_steps(imageset, mappings, model, execution, train, 2, 1000)
-        make_steps(imageset, mappings, model, execution, train, 1, 1000)
+        make_steps(setname, imageset, mappings, model, execution, train, 2, 1000)
+        make_steps(setname, imageset, mappings, model, execution, train, 1, 1000)
     else:
-        make_steps(imageset, mappings, model, execution, train, 10, 1000)
+        make_steps(setname, imageset, mappings, model, execution, train, 10, 1000)
         ampl = 100.0
         for _ in range(10):
             # print('noise ampl.  = ', ampl)
-            make_steps(imageset, mappings, model, execution, train, 5, ampl)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, ampl)
             ampl = max(1.0, 100**-0.1 * ampl)
         # epoch -> 150
         for _ in range(18):
-            make_steps(imageset, mappings, model, execution, train, 5, 1.0)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, 1.0)
         # epoch -> 200
         set_lr(model.siamese, 16e-5)
         for _ in range(10):
-            make_steps(imageset, mappings, model, execution, train, 5, 0.5)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, 0.5)
         # epoch -> 240
         set_lr(model.siamese, 4e-5)
         for _ in range(8):
-            make_steps(imageset, mappings, model, execution, train, 5, 0.25)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, 0.25)
         # epoch -> 250
         set_lr(model.siamese, 1e-5)
         for _ in range(2):
-            make_steps(imageset, mappings, model, execution, train, 5, 0.25)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, 0.25)
         # epoch -> 300
         weights = model.siamese.get_weights()
 
-        model = build(IMG_SHAPE, 64e-5, 0.0002)
+        model = build(64e-5, 0.0002)
         model.siamese.set_weights(weights)
 
         for _ in range(10):
-            make_steps(imageset, mappings, model, execution, train, 5, 1.0)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, 1.0)
         # epoch -> 350
         set_lr(model.siamese, 16e-5)
         for _ in range(10):
-            make_steps(imageset, mappings, model, execution, train, 5, 0.5)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, 0.5)
         # epoch -> 390
         set_lr(model.siamese, 4e-5)
         for _ in range(8):
-            make_steps(imageset, mappings, model, execution, train, 5, 0.25)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, 0.25)
         # epoch -> 400
         set_lr(model.siamese, 1e-5)
         for _ in range(2):
-            make_steps(imageset, mappings, model, execution, train, 5, 0.25)
+            make_steps(setname, imageset, mappings, model, execution, train, 5, 0.25)
 
     model.siamese.save(standard_model)
