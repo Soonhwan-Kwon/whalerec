@@ -104,9 +104,10 @@ mappings = utils.getMappings(setname)
 # Save fknown in model directory as pickle so that we only have to run this once.
 # Again, do the keys have to be sorted here? Saves time? If we cache it I guess that doesn't matter
 # Now run prep_id.py first on the trained model before running any id requests.
-# UPDATE: Getting None for deseriazilation
-# fknown = modelUtils.make_fknown(setname, args.stage)
-fknown = modelUtils.deserialize_fknown(setname, args.stage)
+# UPDATE: Getting None for deseriazilation. Switching back.
+
+# fknown = modelUtils.deserialize_fknown(setname, args.stage)
+fknown = modelUtils.make_fknown2(setname, model, mappings)
 
 fsubmit = model.branch.predict_generator(FeatureGen(submitImageset, submit), max_queue_size=20, workers=10, verbose=0)
 score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)

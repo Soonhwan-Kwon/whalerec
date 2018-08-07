@@ -225,12 +225,15 @@ def score_reshape(score, x, y=None):
 
 
 def make_fknown(setname, steps=None):
-    imageset = utils.getImageSet(setname)
     mappings = utils.getMappings(setname)
     model = get_standard(setname, steps)
-    print("Finished loading model")
+    return make_known2(setname, model, mappings)
+
+
+def make_fknown2(setname, model, mappings):
+    imageset = utils.getImageSet(setname)
     trainedData = utils.hashes2images(mappings.h2p, sorted(list(mappings.h2ws.keys())))
-    utils.debug_var("trainedData", trainedData)
+    # utils.debug_var("trainedData", trainedData)
     return model.branch.predict_generator(FeatureGen(imageset, trainedData), max_queue_size=20, workers=10, verbose=0)
 
 
