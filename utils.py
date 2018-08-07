@@ -2,7 +2,7 @@ import platform
 import random
 import csv
 
-from os.path import isfile
+import os
 import numpy as np
 # Suppress annoying stderr output when importing keras.
 # old_stderr = sys.stderr
@@ -78,7 +78,7 @@ def serialize(obj, filename):
 
 
 def deserialize(filename):
-    if isfile(filename):
+    if os.path.isfile(filename):
         with open(filename, 'rb') as file:
             return pickle.load(file)
     else:
