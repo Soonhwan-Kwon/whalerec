@@ -134,4 +134,6 @@ score = modelUtils.score_reshape(score, fknown, fsubmit)
 
 results = perform_id(mappings.h2ws, score, args.threshold, submit)
 
-print(json.dumps(results))
+print(results)
+json_data = json.dumps(results)
+print(json_data)
