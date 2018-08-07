@@ -55,7 +55,8 @@ def perform_id(h2ws, score, threshold, images):
                     whaleset.add(whale)
                     match = {}
                     match['name'] = whale
-                    match['score'] = scores[jj]
+                    # This needs to be float and not Decimal due to the limitations of the json encoder
+                    match['score'] = float(scores[jj])
                     matches.append(match)
                     # whalelist.append(whale)
                     # if len(whalelist) == 5:
