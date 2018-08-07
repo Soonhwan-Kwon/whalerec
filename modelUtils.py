@@ -298,7 +298,7 @@ def make_steps(setname, imageset, mappings, model, execution, train, steps, ampl
 def get_model_file(setname, type, steps=None):
     filename = os.path.join(utils.set_directory(setname), type + ".model")
     if steps is not None:
-        filename = filename + "." + steps
+        filename = filename + "." + str(steps)
     return filename
 
 
