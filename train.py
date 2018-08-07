@@ -19,7 +19,7 @@ mappings = utils.getMappings(args.name)
 if imageset is None or mappings is None:
     tagged = utils.getTrainData(args.csvfile)
     if imageset is None:
-        imageset = utils.getImageSet(args.datadir, list(tagged.keys()))
+        imageset = utils.prepImageSet(args.datadir, list(tagged.keys()))
     if mappings is None:
         mappings = utils.prepMappings(imageset, tagged)
 
