@@ -9,11 +9,14 @@ import modelUtils
 new_whale = 'new_whale'
 
 
-def perform_id(h2ws, threshold, data):
+def perform_id(h2ws, score, threshold, data):
     """
     @param threshold the score given to 'new_whale'
     @param filename the submission file name
     """
+    # TODO: Check if this needs to be sorted. Saves time?
+    known = sorted(list(h2ws.keys()))
+
     vtop = 0
     vhigh = 0
     pos = [0, 0, 0, 0, 0, 0]
@@ -63,10 +66,8 @@ args = parser.parse_args()
 
 globals = utils.getGlobals()
 tagged = utils.getTrainData(args.datadir)
-config = utils.getConfig(args.datadir, list(tagged.keys()))
-mappings = utils.getMappings(config, tagged)
-
-known = sorted(list(mappings.h2ws.keys()))
+imageset = utils.getImageSet(args.datadir, list(tagged.keys()))
+mappings = utils.getMappings(imageset, tagged)
 
 model = modelUtils.get_standard(globals)
 
@@ -83,19 +84,19 @@ else:
     submit = []
     submit = glob.glob(args.imagedir + "/*", recursive=True)
 
-submitConfig = utils.getConfig(args.imagedir, submit, False)
-
-print(known, submit)
+submitImageset = utils.getImageSet(args.imagedir, submit, False)
 
 if model is None:
     print("Model does not exist! Exiting!")
     sys.exit()
 
-# Evaluate the model.
-fknown = model.branch.predict_generator(FeatureGen(globals, config, utils.hashes2images(mappings.h2p, known)), max_queue_size=20, workers=10, verbose=0)
-fsubmit = model.branch.predict_generator(FeatureGen(globals, submitConfig, submit), max_queue_size=20, workers=10, verbose=0)
+# TODO: Save fknown in model directory as pickle so that we only have to run this once.
+# Again, do the keys have to be sorted here? Saves time? If we cache it I guess that doesn't matter
+trainedData = utils.hashes2images(mappings.h2p, sorted(list(mappings.h2ws.keys())))
+fknown = model.branch.predict_generator(FeatureGen(globals, imageset, trainedData), max_queue_size=20, workers=10, verbose=0)
+
+fsubmit = model.branch.predict_generator(FeatureGen(globals, submitImageset, submit), max_queue_size=20, workers=10, verbose=0)
 score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 
-# Generate the subsmission file.
-perform_id(mappings.h2ws, 0.99, submit)
+perform_id(mappings.h2ws, score, 0.99, submit)

@@ -28,20 +28,20 @@ def show_whale(imgs, per_row=2):
     plt.show()
 
 
-def show_similar_image_example(config, mappings):
-    for h, ps in mappings.h2ps.items():
-        if len(ps) > 2:
-            print('Images:', ps)
-            imgs = [pil_image.open(config.filename(p)) for p in ps]
-            show_whale(imgs, per_row=len(ps))
-            break
+# def show_similar_image_example(imageset, mappings):
+#     for h, ps in mappings.h2ps.items():
+#         if len(ps) > 2:
+#             print('Images:', ps)
+#             imgs = [pil_image.open(imageset.filename(p)) for p in ps]
+#             show_whale(imgs, per_row=len(ps))
+#             break
 
 
-def show_images(config, p):
+def show_images(imageset, p):
     imgs = [
-        utils.read_raw_image(config, p),
-        array_to_img(utils.read_cropped_image(globals, config, p, False)),
-        array_to_img(utils.read_cropped_image(globals, config, p, True))
+        pil_image.open(imageset.filename(p)),
+        array_to_img(utils.read_cropped_image(globals, imageset, p, False)),
+        array_to_img(utils.read_cropped_image(globals, imageset, p, True))
     ]
     show_whale(imgs, per_row=3)
 
@@ -62,18 +62,18 @@ parser.add_argument('-d', '--datadir', dest='datadir')
 args = parser.parse_args()
 
 tagged = utils.getTrainData(args.datadir)
-config = utils.getConfig(args.datadir, list(tagged.keys()))
-mappings = utils.getMappings(config, tagged)
+imageset = utils.getImageSet(args.datadir, list(tagged.keys()))
+mappings = utils.getMappings(imageset, tagged)
 
-show_similar_image_example(config, mappings)
-show_images(config, list(mappings.h2p.values())[31])  # Show sample image
+# show_similar_image_example(imageset, mappings)
+show_images(imageset, list(mappings.h2p.values())[31])  # Show sample image
 
 train = utils.getTrainingHashes(mappings.w2hs)
 
 # Test on a batch of 32 with random costs.
 score = np.random.random_sample(size=(len(train), len(train)))
 
-data = TrainingData(globals, config, mappings, train, score)
+data = TrainingData(globals, imageset, mappings, train, score)
 (a, b), c = data[0]
 print(a.shape, b.shape, c.shape)
 

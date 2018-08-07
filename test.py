@@ -15,8 +15,8 @@ args = parser.parse_args()
 
 globals = utils.getGlobals()
 tagged = utils.getTrainData(args.datadir)
-config = utils.getConfig(args.datadir, list(tagged.keys()))
-mappings = utils.getMappings(config, tagged)
+imageset = utils.getImageSet(args.datadir, list(tagged.keys()))
+mappings = utils.getMappings(imageset, tagged)
 
 utils.debug_var("h2ps", mappings.h2ps)
 utils.debug_var("h2p", mappings.h2p)

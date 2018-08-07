@@ -42,108 +42,34 @@ class Globals(object):
     img_shape = (384, 384, 1)  # The image shape used by the model
 
 
-class Config(object):
-    def __init__(self, datadir):
-        self.datadir = datadir
-        #
-        # Just going to set this to an empty array. Martin determined which should be rotated manually by adding
-        # to the list as he found them. Going to just ignore these for now.
-        #
-        self.rotate = []
-        #
-        # If we want to include bounding boxes for the images (Martin's method to obtain them was manual)
-        # then we can read them in here. I'm going to ignore them for now and assume that we are going to try
-        # and use closely cropped images.
-        #
-        self.p2bb = None
+class ImageInfo(object):
+    size = None
+    hash = None
+    #
+    # Just going to set this to an empty array. Martin determined which should be rotated manually by adding
+    # to the list as he found them. Going to just ignore these for now.
+    #
+    rotate = False
+    #
+    # If we want to include bounding boxes for the images (Martin's method to obtain them was manual)
+    # then we can read them in here. I'm going to ignore them for now and assume that we are going to try
+    # and use closely cropped images.
+    #
+    bb = None
+
+
+class ImageSet(object):
+    def __init__(self, rootdir):
+        self.rootdir = rootdir
+        # Maps filename to its ImageInfo
+        self.infomap = {}
 
     def filename(self, p):
-        return expand_path(self.datadir, p)
+        return os.path.join(self.rootdir, p)
 
 
 class Mappings(object):
     pass
-
-
-def calc_p2size(config, images):
-    p2size = {}
-    for imagename in tqdm(images):
-        size = pil_image.open(config.filename(imagename)).size
-        p2size[imagename] = size
-
-    # print(len(p2size), list(p2size.items())[:5])
-    return p2size
-
-
-def p2size(config, images, useCache=True):
-    if not useCache:
-        return calc_p2size(config, images)
-
-    p2size = deserialize('p2size.pickle')
-    if p2size is None:
-        p2size = calc_p2size(config, images)
-        serialize(p2size, 'p2size.pickle')
-
-    return p2size
-
-
-def calc_p2h(config, images):
-    # Compute phash for each image in the training and test set.
-    p2h = {}
-    for imagename in tqdm(images):
-        img = pil_image.open(config.filename(imagename))
-        h = phash(img)
-        p2h[imagename] = h
-
-    h2ps = unique_hashes(p2h)
-
-    # Find all distinct phash values
-    hs = list(h2ps.keys())
-
-    # If the images are close enough, associate the two phash values (this is the slow part: n^2 algorithm)
-    h2h = {}
-    for i, h1 in enumerate(tqdm(hs)):
-        for h2 in hs[:i]:
-            if h1 - h2 <= 6 and match(config.datadir, h2ps, h1, h2):
-                s1 = str(h1)
-                s2 = str(h2)
-                if s1 < s2:
-                    s1, s2 = s2, s1
-                h2h[s1] = s2
-
-    # Group together images with equivalent phash, and replace by string format of phash (faster and more readable)
-    for p, h in p2h.items():
-        h = str(h)
-        if h in h2h:
-            h = h2h[h]
-        p2h[p] = h
-
-    return p2h
-
-
-def p2h(config, images, useCache=True):
-    if not useCache:
-        return calc_p2h(config, images)
-
-    p2h = deserialize('p2h.pickle')
-    if p2h is None:
-        p2h = calc_p2h(config, images)
-        serialize(p2h, 'p2h.pickle')
-
-    return p2h
-
-
-def unique_hashes(p2h):
-    """
-    Find all images associated with a given phash value.
-    """
-    h2ps = {}
-    for p, h in p2h.items():
-        if h not in h2ps:
-            h2ps[h] = []
-        if p not in h2ps[h]:
-            h2ps[h].append(p)
-    return h2ps
 
 
 def serialize(obj, filename):
@@ -173,18 +99,6 @@ def build_transform(rotation, shear, height_zoom, width_zoom, height_shift, widt
     return np.dot(np.dot(rotation_matrix, shear_matrix), np.dot(zoom_matrix, shift_matrix))
 
 
-def expand_path(datadir, p):
-    file = datadir + '/train/' + p
-    if isfile(file):
-        return file
-
-    file = datadir + '/test/' + p
-
-    if isfile(file):
-        return file
-    return p
-
-
 def hashes2images(h2p, hashes):
     images = []
     for hash in hashes:
@@ -193,7 +107,7 @@ def hashes2images(h2p, hashes):
     return images
 
 
-def read_cropped_image(globals, config, p, augment):
+def read_cropped_image(globals, imageset, p, augment):
     """
     @param p : the name of the picture to read
     @param augment: True/False if data augmentation should be performed, True for training, False for validation
@@ -201,10 +115,14 @@ def read_cropped_image(globals, config, p, augment):
     """
     anisotropy = 2.15  # The horizontal compression ratio
 
-    size_x, size_y = config.p2size[p]
+    info = imageset.infomap[p]
+
+    size_x, size_y = info.size
+
+    img = pil_image.open(imageset.filename(p))
 
     # Determine the region of the original image we want to capture based on the bounding box.
-    if config.p2bb is None or p not in config.p2size.keys():
+    if info.bb is None:
         crop_margin = 0.0
         x0 = 0
         y0 = 0
@@ -212,9 +130,12 @@ def read_cropped_image(globals, config, p, augment):
         y1 = size_y
     else:
         crop_margin = 0.05  # The margin added around the bounding box to compensate for bounding box inaccuracy
-        x0, y0, x1, y1 = config.p2bb[p]
-    if p in config.rotate:
+        x0, y0, x1, y1 = info.bb
+
+    if info.rotate:
         x0, y0, x1, y1 = size_x - x1, size_y - y1, size_x - x0, size_y - y0
+        img = img.rotate(180)
+
     dx = x1 - x0
     dy = y1 - y0
     x0 -= dx * crop_margin
@@ -254,9 +175,8 @@ def read_cropped_image(globals, config, p, augment):
         ), trans)
     trans = np.dot(np.array([[1, 0, 0.5 * (y1 + y0)], [0, 1, 0.5 * (x1 + x0)], [0, 0, 1]]), trans)
 
-    # Read the image, transform to black and white and comvert to numpy array
-    img = read_raw_image(config, p).convert('L')
-    img = img_to_array(img)
+    # Transform image to black and white and comvert to numpy array
+    img = img_to_array(img.convert('L'))
 
     # Apply affine transformation
     matrix = trans[:2, :2]
@@ -269,81 +189,6 @@ def read_cropped_image(globals, config, p, augment):
     img -= np.mean(img, keepdims=True)
     img /= np.std(img, keepdims=True) + K.epsilon()
     return img
-
-
-def read_raw_image(config, p):
-    img = pil_image.open(config.filename(p))
-    if p in config.rotate:
-        img = img.rotate(180)
-    return img
-
-
-# Two phash values are considered duplicate if, for all associated image pairs:
-# 1) They have the same mode and size;
-# 2) After normalizing the pixel to zero mean and variance 1.0, the mean square error does not exceed 0.1
-def match(datadir, h2ps, h1, h2):
-    for p1 in h2ps[h1]:
-        for p2 in h2ps[h2]:
-            i1 = pil_image.open(expand_path(datadir, p1))
-            i2 = pil_image.open(expand_path(datadir, p2))
-            if i1.mode != i2.mode or i1.size != i2.size:
-                return False
-            a1 = np.array(i1)
-            a1 = a1 - a1.mean()
-            a1 = a1 / sqrt((a1**2).mean())
-            a2 = np.array(i2)
-            a2 = a2 - a2.mean()
-            a2 = a2 / sqrt((a2**2).mean())
-            a = ((a1 - a2)**2).mean()
-            if a > 0.1:
-                return False
-    return True
-
-
-# For each images id, select the prefered image
-def prefer(ps, p2size):
-    if len(ps) == 1:
-        return ps[0]
-    best_p = ps[0]
-    best_s = p2size[best_p]
-    for i in range(1, len(ps)):
-        p = ps[i]
-        s = p2size[p]
-        if s[0] * s[1] > best_s[0] * best_s[1]:  # Select the image with highest resolution
-            best_p = p
-            best_s = s
-    return best_p
-
-
-def h2ws(p2h, tagged):
-    h2ws = {}
-    for p, w in tagged.items():
-        h = p2h[p]
-        if h not in h2ws:
-            h2ws[h] = []
-        if w not in h2ws[h]:
-            h2ws[h].append(w)
-    for h, ws in h2ws.items():
-        if len(ws) > 1:
-            h2ws[h] = sorted(ws)
-    # print(len(h2ws))
-    return h2ws
-
-
-def w2hs(h2ws):
-    w2hs = {}
-    for h, ws in h2ws.items():
-        if len(ws) == 1:  # Use only unambiguous pictures
-            w = ws[0]
-            if w not in w2hs:
-                w2hs[w] = []
-            if h not in w2hs[w]:
-                w2hs[w].append(h)
-    for w, hs in w2hs.items():
-        if len(hs) > 1:
-            w2hs[w] = sorted(hs)
-    # print(len(w2hs))
-    return w2hs
 
 
 def getGlobals():
@@ -364,13 +209,72 @@ def getTrainData(datadir, test=None):
     return tagged
 
 
-def getConfig(datadir, images, useCache=True):
-    config = Config(datadir)
+def getImageSet(name):
+    return deserialize(os.path.join("sets", name, "imageset.pickle"))
 
-    config.p2size = p2size(config, images, useCache)
-    config.p2h = p2h(config, images, useCache)
 
-    return config
+def prepImageSet(name, datadir, images, useCache=True):
+    imageset = ImageSet(datadir)
+
+    for imagename in tqdm(images):
+        info = ImageInfo()
+        img = pil_image.open(imageset.filename(imagename))
+
+        info.size = img.size
+        info.hash = phash(img)
+
+        imageset.infomap[imagename] = info
+
+    h2ps = {}
+    for imagename, info in imageset.infomap.items():
+        if info.hash not in h2ps:
+            h2ps[info.hash] = []
+        if imagename not in h2ps[info.hash]:
+            h2ps[info.hash].append(imagename)
+
+    # Two phash values are considered duplicate if, for all associated image pairs:
+    # 1) They have the same mode and size;
+    # 2) After normalizing the pixel to zero mean and variance 1.0, the mean square error does not exceed 0.1
+    def match(h1, h2):
+        for p1 in h2ps[h1]:
+            for p2 in h2ps[h2]:
+                i1 = pil_image.open(imageset.filename(p1))
+                i2 = pil_image.open(imageset.filename(p2))
+                if i1.mode != i2.mode or i1.size != i2.size:
+                    return False
+                a1 = np.array(i1)
+                a1 = a1 - a1.mean()
+                a1 = a1 / sqrt((a1**2).mean())
+                a2 = np.array(i2)
+                a2 = a2 - a2.mean()
+                a2 = a2 / sqrt((a2**2).mean())
+                a = ((a1 - a2)**2).mean()
+                if a > 0.1:
+                    return False
+        return True
+
+    # Find all distinct phash values
+    hs = list(h2ps.keys())
+
+    # If the images are close enough, associate the two phash values (this is the slow part: n^2 algorithm)
+    h2h = {}
+    for i, h1 in enumerate(tqdm(hs)):
+        for h2 in hs[:i]:
+            if h1 - h2 <= 6 and match(h1, h2):
+                s1 = str(h1)
+                s2 = str(h2)
+                if s1 < s2:
+                    s1, s2 = s2, s1
+                h2h[s1] = s2
+
+    # Group together images with equivalent phash, and replace by string format of phash (faster and more readable)
+    for imagename, info in imageset.infomap.items():
+        hash = str(info.hash)
+        if hash in h2h:
+            hash = h2h[hash]
+        imageset.infomap[imagename] = hash
+
+    serialize(imageset, os.path.join("sets", name, "imageset.pickle"))
 
 
 def getTrainingHashes(w2hs):
@@ -382,17 +286,59 @@ def getTrainingHashes(w2hs):
     return train
 
 
-def getMappings(config, tagged):
+def getMappings(imageset, tagged):
     mappings = Mappings()
 
-    mappings.h2ps = unique_hashes(config.p2h)
+    h2ps = {}
+    for p, info in imageset.infomap.items():
+        if info.hash not in h2ps:
+            h2ps[info.hash] = []
+        if p not in h2ps[info.hash]:
+            h2ps[info.hash].append(p)
+
+    # For each images id, select the prefered image
+    def prefer(ps):
+        if len(ps) == 1:
+            return ps[0]
+        best_p = ps[0]
+        best_s = imageset.infomap[best_p].size
+        for i in range(1, len(ps)):
+            p = ps[i]
+            s = imageset.infomap[p].size
+            if s[0] * s[1] > best_s[0] * best_s[1]:  # Select the image with highest resolution
+                best_p = p
+                best_s = s
+        return best_p
 
     mappings.h2p = {}
-    for h, ps in mappings.h2ps.items():
-        mappings.h2p[h] = prefer(ps, config.p2size)
+    for h, ps in h2ps.items():
+        mappings.h2p[h] = prefer(ps)
 
-    mappings.h2ws = h2ws(config.p2h, tagged)
+    h2ws = {}
+    for p, w in tagged.items():
+        h = imageset.infomap[p].hash
+        if h not in h2ws:
+            h2ws[h] = []
+        if w not in h2ws[h]:
+            h2ws[h].append(w)
+    for h, ws in h2ws.items():
+        if len(ws) > 1:
+            h2ws[h] = sorted(ws)
 
-    mappings.w2hs = w2hs(mappings.h2ws)
+    w2hs = {}
+    for h, ws in h2ws.items():
+        if len(ws) == 1:  # Use only unambiguous pictures
+            w = ws[0]
+            if w not in w2hs:
+                w2hs[w] = []
+            if h not in w2hs[w]:
+                w2hs[w].append(h)
+
+    for w, hs in w2hs.items():
+        if len(hs) > 1:
+            w2hs[w] = sorted(hs)
+
+    mappings.h2ws = h2ws
+    mappings.w2hs = w2hs
 
     return mappings
