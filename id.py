@@ -6,8 +6,9 @@ import argparse
 import globals
 import utils
 import modelUtils
-
 from modelUtils import FeatureGen, ScoreGen
+
+from tqdm import tqdm
 
 new_whale = 'new_whale'
 
