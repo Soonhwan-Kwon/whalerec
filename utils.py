@@ -72,12 +72,19 @@ class Mappings(object):
     pass
 
 
-def serialize(obj, filename):
+def serialize(obj, setname, objname):
+    directory = os.path.join("sets", setname)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    os.path.join(directory, objname + ".pickle")
     with open(filename, 'wb') as file:
         pickle.dump(obj, file)
 
 
-def deserialize(filename):
+def deserialize(setname, name):
+    directory = os.path.join("sets", setname)
+    filename = os.path.join(directory, name + ".pickle")
     if os.path.isfile(filename):
         with open(filename, 'rb') as file:
             return pickle.load(file)
@@ -209,17 +216,17 @@ def getTrainData(filename, test=None):
 
 
 def getMappings(name):
-    return deserialize(os.path.join("sets", name, "mappings.pickle"))
+    return deserialize(name, "mappings")
 
 
 def getImageSet(name):
-    return deserialize(os.path.join("sets", name, "imageset.pickle"))
+    return deserialize(name, "imageset")
 
 
 def prepImageSet(name, datadir, images, useCache=True):
     imageset = ImageSet(datadir)
 
-    for imagename in tqdm(images):
+    for imagename in tqdm(images, desc="Image Info"):
         info = ImageInfo()
         img = pil_image.open(imageset.filename(imagename))
 
@@ -261,7 +268,7 @@ def prepImageSet(name, datadir, images, useCache=True):
 
     # If the images are close enough, associate the two phash values (this is the slow part: n^2 algorithm)
     h2h = {}
-    for i, h1 in enumerate(tqdm(hs)):
+    for i, h1 in enumerate(tqdm(hs, desc="Hash Similarities")):
         for h2 in hs[:i]:
             if h1 - h2 <= 6 and match(h1, h2):
                 s1 = str(h1)
@@ -277,7 +284,7 @@ def prepImageSet(name, datadir, images, useCache=True):
             hash = h2h[hash]
         imageset.infomap[imagename] = hash
 
-    serialize(imageset, os.path.join("sets", name, "imageset.pickle"))
+    serialize(imageset, name, "imageset")
     return imageset
 
 
@@ -346,5 +353,5 @@ def prepMappings(name, imageset, tagged):
     mappings.h2ws = h2ws
     mappings.w2hs = w2hs
 
-    serialize(mappings, os.path.join("sets", name, "mappings.pickle"))
+    serialize(mappings, name, "mappings")
     return mappings
