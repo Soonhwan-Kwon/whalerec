@@ -3,6 +3,7 @@ import glob
 
 import argparse
 
+import globals
 import utils
 import modelUtils
 
@@ -55,7 +56,7 @@ def perform_id(h2ws, score, threshold, data):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-t', '--test', action="store", type=int)  # Number of records to test with
+parser.add_argument('-t', '--test', action="store_true")
 parser.add_argument('-s', '--stage', action="store", type=int)  # Number of steps to read the model at
 parser.add_argument('-n', '--name', dest='name')
 parser.add_argument('-D' '--images_dir', dest='imagedir')
@@ -64,10 +65,11 @@ args = parser.parse_args()
 
 setname = args.name
 
-imageset = utils.getImageSet(setname)
-mappings = utils.getMappings(setname)
-
 model = modelUtils.get_standard(setname, args.stage)
+
+if model is None:
+    print("Model does not exist! Exiting!")
+    sys.exit()
 
 # filename = datadir + "/sample_submission.csv"
 # submit = []
@@ -82,19 +84,29 @@ else:
     submit = []
     submit = glob.glob(args.imagedir + "/*", recursive=True)
 
-submitImageset = utils.getImageSet(args.imagedir, submit, False)
+#
+# If we are testing then we may have wanted to save the prep work so that we can
+# repeat this iding very quickly. So we first check to see if we have already created
+# the imageset pickle
+#
+if test:
+    submitImageset = utils.deserialize(args.imagedir, globals.IMAGESET)
+    if submitImageset is None:
+        submitImageset = utils.prepImageSet(args.imagedir, submit)
+        utils.serialize(args.imagedir, globals.IMAGESET)
+else:
+    submitImageset = utils.prepImageSet(args.imagedir, submit)
 
-if model is None:
-    print("Model does not exist! Exiting!")
-    sys.exit()
-
-# TODO: Save fknown in model directory as pickle so that we only have to run this once.
+# Save fknown in model directory as pickle so that we only have to run this once.
 # Again, do the keys have to be sorted here? Saves time? If we cache it I guess that doesn't matter
-trainedData = utils.hashes2images(mappings.h2p, sorted(list(mappings.h2ws.keys())))
-fknown = model.branch.predict_generator(FeatureGen(imageset, trainedData), max_queue_size=20, workers=10, verbose=0)
+# Now run prep_id.py first on the trained model before running any id requests.
+# fknown = modelUtils.make_fknown(setname, args.stage)
+fknown = modelUtils.deserialize_fknown(setname, args.stage)
 
 fsubmit = model.branch.predict_generator(FeatureGen(submitImageset, submit), max_queue_size=20, workers=10, verbose=0)
 score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 
+
+mappings = utils.getMappings(setname)
 perform_id(mappings.h2ws, score, 0.99, submit)

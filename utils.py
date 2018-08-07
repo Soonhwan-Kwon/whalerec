@@ -1,14 +1,11 @@
-import platform
+import os
 import random
 import csv
 
-import os
+import globals
+
 import numpy as np
-# Suppress annoying stderr output when importing keras.
-# old_stderr = sys.stderr
-# sys.stderr = open('/dev/null' if platform.system() != 'Windows' else 'nul', 'w')
 import keras
-# sys.stderr = old_stderr
 
 from keras import backend as K
 from keras.preprocessing.image import img_to_array
@@ -23,8 +20,6 @@ import pickle
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
 from imagehash import phash
-
-from globals import IMG_SHAPE
 
 
 #
@@ -62,8 +57,8 @@ class ImageSet(object):
         # Maps filename to its ImageInfo
         self.infomap = {}
 
-    def filename(self, p):
-        return os.path.join(self.rootdir, p)
+    def filename(self, img):
+        return os.path.join(self.rootdir, img)
 
 
 class Mappings(object):
@@ -74,18 +69,25 @@ def set_directory(setname):
     return os.path.join("sets", setname)
 
 
-def serialize(obj, setname, objname):
-    directory = set_directory(setname)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+def serialize_set(setname, obj, objname):
+    serialize(set_directory(setname), obj, objname)
 
-    filename = os.path.join(directory, objname + ".pickle")
+
+def serialize(dir, obj, objname):
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    filename = os.path.join(dir, objname + ".pickle")
     with open(filename, 'wb') as file:
         pickle.dump(obj, file)
 
 
-def deserialize(setname, name):
-    filename = os.path.join(set_directory(setname), name + ".pickle")
+def deserialize_set(setname, objname):
+    return deserialize(set_directory(setname), objname)
+
+
+def deserialize(dir, objname):
+    filename = os.path.join(dir, objname + ".pickle")
     if os.path.isfile(filename):
         with open(filename, 'rb') as file:
             return pickle.load(file)
@@ -115,7 +117,7 @@ def hashes2images(h2p, hashes):
     return images
 
 
-def read_cropped_image(imageset, p, augment):
+def read_cropped_image(imageset, img, augment):
     """
     @param p : the name of the picture to read
     @param augment: True/False if data augmentation should be performed, True for training, False for validation
@@ -123,11 +125,11 @@ def read_cropped_image(imageset, p, augment):
     """
     anisotropy = 2.15  # The horizontal compression ratio
 
-    info = imageset.infomap[p]
+    info = imageset.infomap[img]
 
     size_x, size_y = info.size
 
-    img = pil_image.open(imageset.filename(p))
+    img = pil_image.open(imageset.filename(img))
 
     # Determine the region of the original image we want to capture based on the bounding box.
     if info.bb is None:
@@ -170,8 +172,8 @@ def read_cropped_image(imageset, p, augment):
         x1 += dx
 
     # Generate the transformation matrix
-    trans = np.array([[1, 0, -0.5 * IMG_SHAPE[0]], [0, 1, -0.5 * IMG_SHAPE[1]], [0, 0, 1]])
-    trans = np.dot(np.array([[(y1 - y0) / IMG_SHAPE[0], 0, 0], [0, (x1 - x0) / IMG_SHAPE[1], 0], [0, 0, 1]]), trans)
+    trans = np.array([[1, 0, -0.5 * globals.IMG_SHAPE[0]], [0, 1, -0.5 * globals.IMG_SHAPE[1]], [0, 0, 1]])
+    trans = np.dot(np.array([[(y1 - y0) / globals.IMG_SHAPE[0], 0, 0], [0, (x1 - x0) / globals.IMG_SHAPE[1], 0], [0, 0, 1]]), trans)
     if augment:
         trans = np.dot(build_transform(
             random.uniform(-5, 5),
@@ -190,8 +192,8 @@ def read_cropped_image(imageset, p, augment):
     matrix = trans[:2, :2]
     offset = trans[:2, 2]
     img = img.reshape(img.shape[:-1])
-    img = affine_transform(img, matrix, offset, output_shape=IMG_SHAPE[:-1], order=1, mode='constant', cval=np.average(img))
-    img = img.reshape(IMG_SHAPE)
+    img = affine_transform(img, matrix, offset, output_shape=globals.IMG_SHAPE[:-1], order=1, mode='constant', cval=np.average(img))
+    img = img.reshape(globals.IMG_SHAPE)
 
     # Normalize to zero mean and unit variance
     img -= np.mean(img, keepdims=True)
@@ -212,15 +214,15 @@ def getTrainData(filename, test=None):
     return tagged
 
 
-def getMappings(name):
-    return deserialize(name, "mappings")
+def getMappings(setname):
+    return deserialize_set(setname, globals.MAPPINGS)
 
 
-def getImageSet(name):
-    return deserialize(name, "imageset")
+def getImageSet(setname):
+    return deserialize_set(setname, globals.IMAGESET)
 
 
-def prepImageSet(name, datadir, images, useCache=True):
+def prepImageSet(datadir, images):
     imageset = ImageSet(datadir)
 
     for imagename in tqdm(images, desc="Image Info"):
@@ -281,7 +283,6 @@ def prepImageSet(name, datadir, images, useCache=True):
             hash = h2h[hash]
         info.hash = hash
 
-    serialize(imageset, name, "imageset")
     return imageset
 
 
@@ -294,15 +295,15 @@ def getTrainingHashes(w2hs):
     return train
 
 
-def prepMappings(name, imageset, tagged):
+def prepMappings(imageset, tagged):
     mappings = Mappings()
 
     h2ps = {}
-    for p, info in imageset.infomap.items():
+    for img, info in imageset.infomap.items():
         if info.hash not in h2ps:
             h2ps[info.hash] = []
-        if p not in h2ps[info.hash]:
-            h2ps[info.hash].append(p)
+        if img not in h2ps[info.hash]:
+            h2ps[info.hash].append(img)
 
     # For each images id, select the prefered image
     def prefer(ps):
@@ -311,20 +312,20 @@ def prepMappings(name, imageset, tagged):
         best_p = ps[0]
         best_s = imageset.infomap[best_p].size
         for i in range(1, len(ps)):
-            p = ps[i]
-            s = imageset.infomap[p].size
+            img = ps[i]
+            s = imageset.infomap[img].size
             if s[0] * s[1] > best_s[0] * best_s[1]:  # Select the image with highest resolution
-                best_p = p
+                best_p = img
                 best_s = s
         return best_p
 
     mappings.h2p = {}
-    for h, ps in h2ps.items():
-        mappings.h2p[h] = prefer(ps)
+    for hash, ps in h2ps.items():
+        mappings.h2p[hash] = prefer(ps)
 
     h2ws = {}
-    for p, w in tagged.items():
-        h = imageset.infomap[p].hash
+    for img, w in tagged.items():
+        h = imageset.infomap[img].hash
         if h not in h2ws:
             h2ws[h] = []
         if w not in h2ws[h]:
@@ -350,5 +351,4 @@ def prepMappings(name, imageset, tagged):
     mappings.h2ws = h2ws
     mappings.w2hs = w2hs
 
-    serialize(mappings, name, "mappings")
     return mappings

@@ -1,5 +1,6 @@
 import argparse
 
+import globals
 import utils
 import modelUtils
 
@@ -19,8 +20,12 @@ mappings = utils.getMappings(setname)
 if imageset is None or mappings is None:
     tagged = utils.getTrainData(args.csvfile)
     if imageset is None:
-        imageset = utils.prepImageSet(setname, args.datadir, list(tagged.keys()))
+        imageset = utils.prepImageSet(args.datadir, list(tagged.keys()))
+        serialize_set(setname, imageset, globals.IMAGESET)
+
     if mappings is None:
-        mappings = utils.prepMappings(setname, imageset, tagged)
+        mappings = utils.prepMappings(imageset, tagged)
+        serialize_set(setname, mappings, globals.MAPPINGS)
+
 
 modelUtils.make_standard(setname, imageset, mappings, args.test)

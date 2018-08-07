@@ -1,4 +1,4 @@
-from os.path import isfile
+import os
 import random
 
 import utils
@@ -35,11 +35,11 @@ class WhaleRecModel(object):
 
 # A Keras generator to evaluate only the BRANCH MODEL
 class FeatureGen(Sequence):
-    def __init__(self, imageset, data, batch_size=64, verbose=1):
+    def __init__(self, imageset, images, batch_size=64, verbose=1):
         super(FeatureGen, self).__init__()
 
         self.imageset = imageset
-        self.data = data
+        self.images = images
         self.batch_size = batch_size
         self.verbose = verbose
         if self.verbose > 0:
@@ -47,11 +47,11 @@ class FeatureGen(Sequence):
 
     def __getitem__(self, index):
         start = self.batch_size * index
-        size = min(len(self.data) - start, self.batch_size)
+        size = min(len(self.images) - start, self.batch_size)
         a = np.zeros((size,) + IMG_SHAPE, dtype=K.floatx())
 
         for i in range(size):
-            a[i, :, :, :] = utils.read_cropped_image(self.imageset, self.data[start + i], False)
+            a[i, :, :, :] = utils.read_cropped_image(self.imageset, self.images[start + i], False)
         if self.verbose > 0:
             self.progress.update()
             if self.progress.n >= len(self):
@@ -59,7 +59,7 @@ class FeatureGen(Sequence):
         return a
 
     def __len__(self):
-        return (len(self.data) + self.batch_size - 1) // self.batch_size
+        return (len(self.images) + self.batch_size - 1) // self.batch_size
 
 
 # A Keras generator to evaluate on the HEAD MODEL on features already pre-computed.
@@ -187,10 +187,10 @@ def build(lr, l2, activation='sigmoid'):
     xa = branch_model(img_a)
     xb = branch_model(img_b)
     x = head_model([xa, xb])
-    model = Model([img_a, img_b], x)
-    model.compile(optim, loss='binary_crossentropy', metrics=['binary_crossentropy', 'acc'])
+    siamese = Model([img_a, img_b], x)
+    siamese.compile(optim, loss='binary_crossentropy', metrics=['binary_crossentropy', 'acc'])
 
-    return WhaleRecModel(model, branch_model, head_model)
+    return WhaleRecModel(siamese, branch_model, head_model)
 
 
 def set_lr(model, lr):
@@ -222,6 +222,29 @@ def score_reshape(score, x, y=None):
         iy = iy.reshape((iy.size,))
         m[iy, ix] = score.squeeze()
     return m
+
+
+def make_fknown(setname, steps=None):
+    imageset = utils.getImageSet(setname)
+    mappings = utils.getMappings(setname)
+    model = get_standard(setname, steps)
+
+    trainedData = utils.hashes2images(mappings.h2p, sorted(list(mappings.h2ws.keys())))
+    return model.branch.predict_generator(FeatureGen(imageset, trainedData), max_queue_size=20, workers=10, verbose=0)
+
+
+def serialize_fknown(setname, fknown, steps=None):
+    objname = globals.FKNOWN
+    if args.stage is not None:
+        objname += args.stage
+    serialize_set(setname, fknown, objname)
+
+
+def deserialize_fknown(setname, steps=None):
+    objname = globals.FKNOWN
+    if args.stage is not None:
+        objname += args.stage
+    deserialize_set(setname, objname)
 
 
 def make_steps(setname, imageset, mappings, model, execution, train, steps, ampl):
@@ -286,7 +309,7 @@ def save_standard(setname, model, steps=None):
 
 def get_standard(setname, steps=None):
     filename = get_model_file(setname, "standard", steps)
-    if isfile(filename):
+    if os.path.isfile(filename):
         model = build(64e-5, 0)
         tmp = load_model(filename)
         model.siamese.set_weights(tmp.get_weights())
