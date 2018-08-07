@@ -281,7 +281,7 @@ def prepImageSet(name, datadir, images, useCache=True):
         hash = str(info.hash)
         if hash in h2h:
             hash = h2h[hash]
-        imageset.infomap[imagename] = hash
+        info.hash = hash
 
     serialize(imageset, name, "imageset")
     return imageset
