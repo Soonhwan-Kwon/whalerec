@@ -56,15 +56,18 @@ def perform_id(h2ws, score, threshold, data):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--test', action="store", type=int)  # Number of records to test with
+parser.add_argument('-s', '--stage', action="store", type=int)  # Number of steps to read the model at
 parser.add_argument('-n', '--name', dest='name')
 parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
 args = parser.parse_args()
 
-imageset = utils.getImageSet(args.name)
-mappings = utils.getMappings(args.name)
+setname = args.name
 
-model = modelUtils.get_standard()
+imageset = utils.getImageSet(setname)
+mappings = utils.getMappings(setname)
+
+model = modelUtils.get_standard(setname, args.stage)
 
 # filename = datadir + "/sample_submission.csv"
 # submit = []

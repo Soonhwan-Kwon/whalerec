@@ -272,17 +272,20 @@ def make_steps(setname, setname, imageset, mappings, model, execution, train, st
     save_standard(setname, model)
 
 
-def get_model_file(setname, type):
-    return os.path.file(utils.set_directory(setname), type + ".model")
+def get_model_file(setname, type, steps=None):
+    filename = os.path.file(utils.set_directory(setname), type + ".model")
+    if steps is not None:
+        filename = filename + "." + steps
+    return filename
 
 
-def save_standard(setname, model):
-    filename = get_model_file(setname, "standard")
+def save_standard(setname, model, steps=None):
+    filename = get_model_file(setname, "standard", steps)
     model.siamese.save(filename)
 
 
-def get_standard(setname):
-    filename = get_model_file(setname, "standard")
+def get_standard(setname, steps=None):
+    filename = get_model_file(setname, "standard", steps)
     if isfile(filename):
         model = build(64e-5, 0)
         tmp = load_model(filename)
@@ -311,29 +314,42 @@ def make_standard(setname, imageset, mappings, test=False):
     # epoch -> 10
     if test:
         make_steps(setname, imageset, mappings, model, execution, train, 2, 1000)
-        make_steps(setname, imageset, mappings, model, execution, train, 1, 1000)
+        save_standard(setname, model, execution.steps)
+
+        make_steps(setname, imageset, mappings, model, execution, train, 2, 100.0)
     else:
         make_steps(setname, imageset, mappings, model, execution, train, 10, 1000)
+        save_standard(setname, model, execution.steps)
+
         ampl = 100.0
         for _ in range(10):
-            # print('noise ampl.  = ', ampl)
             make_steps(setname, imageset, mappings, model, execution, train, 5, ampl)
             ampl = max(1.0, 100**-0.1 * ampl)
+        save_standard(setname, model, execution.steps)
+
         # epoch -> 150
         for _ in range(18):
             make_steps(setname, imageset, mappings, model, execution, train, 5, 1.0)
+        save_standard(setname, model, execution.steps)
+
         # epoch -> 200
         set_lr(model.siamese, 16e-5)
         for _ in range(10):
             make_steps(setname, imageset, mappings, model, execution, train, 5, 0.5)
+        save_standard(setname, model, execution.steps)
+
         # epoch -> 240
         set_lr(model.siamese, 4e-5)
         for _ in range(8):
             make_steps(setname, imageset, mappings, model, execution, train, 5, 0.25)
+        save_standard(setname, model, execution.steps)
+
         # epoch -> 250
         set_lr(model.siamese, 1e-5)
         for _ in range(2):
             make_steps(setname, imageset, mappings, model, execution, train, 5, 0.25)
+        save_standard(setname, model, execution.steps)
+
         # epoch -> 300
         weights = model.siamese.get_weights()
 
@@ -342,17 +358,23 @@ def make_standard(setname, imageset, mappings, test=False):
 
         for _ in range(10):
             make_steps(setname, imageset, mappings, model, execution, train, 5, 1.0)
+        save_standard(setname, model, execution.steps)
+
         # epoch -> 350
         set_lr(model.siamese, 16e-5)
         for _ in range(10):
             make_steps(setname, imageset, mappings, model, execution, train, 5, 0.5)
+        save_standard(setname, model, execution.steps)
+
         # epoch -> 390
         set_lr(model.siamese, 4e-5)
         for _ in range(8):
             make_steps(setname, imageset, mappings, model, execution, train, 5, 0.25)
+        save_standard(setname, model, execution.steps)
+
         # epoch -> 400
         set_lr(model.siamese, 1e-5)
         for _ in range(2):
             make_steps(setname, imageset, mappings, model, execution, train, 5, 0.25)
 
-    model.siamese.save(standard_model)
+    save_standard(setname, model)
