@@ -84,22 +84,16 @@ args = parser.parse_args()
 
 setname = args.name
 
-model = modelUtils.get_standard(setname, args.stage)
-
-if model is None:
-    raise ValueError("Model does not exist")
-
-# filename = datadir + "/sample_submission.csv"
-# submit = []
-# with open(filename, newline='') as csvfile:
-#     reader = csv.reader(csvfile)
-#     next(reader, None)  # skip the headers
-#     for row in reader:
-#         submit.append(row[0])
 if args.file:
     submit = [args.file]
 else:
     submit = utils.getImageFiles(args.imagedir)
+
+
+model = modelUtils.get_standard(setname, args.stage)
+
+if model is None:
+    raise ValueError("Model does not exist")
 
 #
 # If we are testing then we may have wanted to save the prep work so that we can
