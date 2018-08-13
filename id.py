@@ -69,7 +69,6 @@ def perform_id(h2ws, score, threshold, images):
 
         result['matches'] = matches
         results.append(result)
-        # print(img + ',' + ' '.join(whalelist[:5]) + '\n')
     # return vtop, vhigh, po
     return results
 
@@ -89,8 +88,7 @@ setname = args.name
 model = modelUtils.get_standard(setname, args.stage)
 
 if model is None:
-    print("Model does not exist! Exiting!")
-    sys.exit()
+    raise ValueError(f"Model for [{setname}] does not exist!")
 
 # filename = datadir + "/sample_submission.csv"
 # submit = []

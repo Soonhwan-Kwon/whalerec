@@ -331,8 +331,7 @@ def make_standard(setname, imageset, mappings, test=False):
 
     print("Training Images: ", len(train))
     if len(train) == 0:
-        print("No data to train on! Exiting!")
-        return
+        raise ValueError("No data to train on!")
 
     random.shuffle(train)
 
