@@ -36,7 +36,7 @@ def perform_id(h2ws, score, threshold, images, min_matches=0):
                 # if len(whalelist) == 5:
                 #     break
 
-            if scores[jj] < threshold and len(matches) < min_matches:
+            if scores[jj] < threshold and len(matches) >= min_matches:
                 break
 
             hash = known[jj]

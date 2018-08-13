@@ -26,42 +26,40 @@ with open("/Users/ken/dev/animalus/animalus-core/dev/kaggle/playground_image_map
 with open("id_test.json", 'r') as input:
     data = json.loads(input.read())
 
+
+def got_correct(matches, index, answer):
+        if index >= len(matches):
+            return False
+        match = matches[index]
+        kaggle_id = match['name']
+        score = match['score']
+        if score < 0.92 and answer.kaggle not in trained:
+            return True
+        if kaggle_id == answer.kaggle:
+            return True
+        return False
+
+
 correct = 0
 wrong = 0
-nothing_found = 0
-correct_new_whales = 0
-no_answer = 0
 for item in data:
     # print(item)
     image = os.path.basename(item['image'])
     matches = item['matches']
-    if len(matches) == 0:
-        # print(answer.kaggle, answer.kaggle in trained)
-        if answer.kaggle in trained:
-            nothing_found += 1
-        else:
-            correct_new_whales += 1
-    else:
-        answer = answers[image]
-        if answer is None:
-            no_answer += 1
-        else:
-            if matches[0]['name'] == answer.kaggle:
-                correct += 1
-            else:
-                wrong += 1
+    answer = answers[image]
+    tmp_correct = False
+    for ii in range(0, 4):
+        tmp_correct = got_correct(matches, ii, answer)
+        if tmp_correct:
+            break
 
-print(f"No Answer:  {no_answer}")
-print(f"Nothing Found:  {nothing_found}")
-print(f"Correct new whales:  {correct_new_whales}")
+    if tmp_correct:
+        correct += 1
+    else:
+        wrong += 1
+
 print(f"Correct:  {correct}")
 print(f"Wrong:  {wrong}")
 print("")
 
-totalCorrect = correct_new_whales + correct
-totalWrong = nothing_found + wrong
-
-print(f"Total Correct:  {totalCorrect}")
-print(f"Total Wrong:  {totalWrong}")
-
-print(f"Score:  {totalCorrect / (totalCorrect + totalWrong)}")
+print(f"Score:  {correct / (correct + wrong)}")
