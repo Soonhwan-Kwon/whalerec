@@ -88,7 +88,7 @@ setname = args.name
 model = modelUtils.get_standard(setname, args.stage)
 
 if model is None:
-    raise ValueError(f"Model for [{setname}] does not exist!")
+    raise ValueError("Model does not exist")
 
 # filename = datadir + "/sample_submission.csv"
 # submit = []
