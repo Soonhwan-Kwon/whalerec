@@ -229,6 +229,12 @@ def prepImageSet(datadir, images):
     imageset = ImageSet(datadir)
 
     for imagename in tqdm(images, desc="Image Info"):
+        filename, file_extension = os.path.splitext(imagename)
+        extension = file_extension.lower()
+        if file_extension != ".png" and file_extension != ".jpg":
+            print("Ignoring file [%s]" % filename)
+            continue
+
         info = ImageInfo()
         img = pil_image.open(imageset.filename(imagename))
 
