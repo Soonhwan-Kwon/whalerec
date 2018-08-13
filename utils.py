@@ -1,6 +1,7 @@
 import os
 import random
 import csv
+import glob
 
 import globals
 
@@ -225,16 +226,22 @@ def getImageSet(setname):
     return deserialize_set(setname, globals.IMAGESET)
 
 
+def getImageFiles(directory):
+    # make_glob('jpg')  # args.imagedir + '/*.[jJ][pP][gG]'
+    def make_glob(extension):
+        return directory + '/*.' + ''.join('[%s%s]' % (e.lower(), e.upper()) for e in extension)
+
+    globbys = (make_glob("jpg"), make_glob("png"))
+    images = []
+    for globby in globbys:
+        images.extend(glob.glob(globby, recursive=True))
+    return images
+
+
 def prepImageSet(datadir, images):
     imageset = ImageSet(datadir)
 
     for imagename in tqdm(images, desc="Image Info"):
-        filename, file_extension = os.path.splitext(imagename)
-        extension = file_extension.lower()
-        if file_extension != ".png" and file_extension != ".jpg":
-            print("Ignoring file [%s]" % filename)
-            continue
-
         info = ImageInfo()
         img = pil_image.open(imageset.filename(imagename))
 

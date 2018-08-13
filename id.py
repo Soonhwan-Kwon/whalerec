@@ -1,5 +1,4 @@
 import sys
-import glob
 import json
 import argparse
 
@@ -100,8 +99,7 @@ if model is None:
 if args.file:
     submit = [args.file]
 else:
-    submit = []
-    submit = glob.glob(args.imagedir + "/*", recursive=True)
+    submit = utils.getImageFiles(args.imagedir)
 
 #
 # If we are testing then we may have wanted to save the prep work so that we can
