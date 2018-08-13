@@ -13,7 +13,7 @@ import numpy as np
 # new_whale = 'new_whale'
 
 
-def perform_id(h2ws, score, threshold, images):
+def perform_id(h2ws, score, threshold, images, min_matches=0):
     # TODO: Check if this needs to be sorted. Saves time?
     # I think the order might need to match that of the IDing process so that it matches the score array.
     # Which would match this line in modelUtils
@@ -21,14 +21,10 @@ def perform_id(h2ws, score, threshold, images):
     known = sorted(list(h2ws.keys()))
 
     results = []
-    # vtop = 0
-    # vhigh = 0
-    # pos = [0, 0, 0, 0, 0, 0]
     for ii, img in enumerate(tqdm(images)):
         result = {}
         result['image'] = img
 
-        # whalelist = []
         whaleset = set()
         scores = score[ii, :]
         matches = []
@@ -40,41 +36,28 @@ def perform_id(h2ws, score, threshold, images):
                 # if len(whalelist) == 5:
                 #     break
 
-            if scores[jj] < threshold:
+            if scores[jj] < threshold and len(matches) < min_matches:
                 break
 
             hash = known[jj]
             for whale in h2ws[hash]:
                 # assert whale != new_whale
                 if whale not in whaleset:
-                    # if scores[jj] > 1.0:
-                    #     vtop += 1
-                    # elif scores[jj] >= threshold:
-                    #     vhigh += 1
                     whaleset.add(whale)
                     match = {}
                     match['name'] = whale
                     # This needs to be float and not Decimal due to the limitations of the json encoder
                     match['score'] = float(scores[jj])
                     matches.append(match)
-                    # whalelist.append(whale)
-                    # if len(whalelist) == 5:
-                    #     break
-            # if len(whalelist) == 5:
-            #     break
-        # if new_whale not in whaleset:
-        #     pos[5] += 1
-        # assert len(whalelist) == 5 and len(whaleset) == 5
-
         result['matches'] = matches
         results.append(result)
-    # return vtop, vhigh, po
     return results
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--test', action="store_true")
 parser.add_argument('-s', '--stage', action="store", type=int)  # Number of steps to read the model at
+parser.add_argument('-m', '--min_matches', default=0, action="store", type=int)  # Number of steps to read the model at
 parser.add_argument('-n', '--name', dest='name')
 parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
@@ -123,7 +106,7 @@ score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=2
 score = modelUtils.score_reshape(score, fknown, fsubmit)
 
 
-results = perform_id(mappings.h2ws, score, args.threshold, submit)
+results = perform_id(mappings.h2ws, score, args.threshold, submit, args.min_matches)
 
 json_data = json.dumps(results)
 if args.output is None:
