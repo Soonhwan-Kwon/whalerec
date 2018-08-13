@@ -80,6 +80,7 @@ parser.add_argument('-s', '--stage', action="store", type=int)  # Number of step
 parser.add_argument('-n', '--name', dest='name')
 parser.add_argument('-D' '--images_dir', dest='imagedir')
 parser.add_argument('-f', '--file', dest="file")
+parser.add_argument('-o', '--output')
 parser.add_argument('--threshold', dest="threshold", default=0.99, type=float)
 args = parser.parse_args()
 
@@ -113,7 +114,7 @@ if args.test:
     submitImageset = utils.deserialize(args.imagedir, globals.IMAGESET)
     if submitImageset is None:
         submitImageset = utils.prepImageSet(args.imagedir, submit)
-        utils.serialize(args.imagedir, globals.IMAGESET)
+        utils.serialize(args.imagedir, submitImageset, globals.IMAGESET)
 else:
     submitImageset = utils.prepImageSet(args.imagedir, submit)
 
@@ -135,4 +136,8 @@ score = modelUtils.score_reshape(score, fknown, fsubmit)
 results = perform_id(mappings.h2ws, score, args.threshold, submit)
 
 json_data = json.dumps(results)
-print(json_data)
+if args.output is None:
+    print(json_data)
+else:
+    with open(args.output, 'w') as output:
+        output.write(json_data)
