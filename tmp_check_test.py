@@ -27,21 +27,24 @@ with open("id_test.json", 'r') as input:
     data = json.loads(input.read())
 
 
-def got_correct(matches, index, answer):
+def got_correct(matches, index, answer, threshold):
         if index >= len(matches):
             return False
         match = matches[index]
         kaggle_id = match['name']
         score = match['score']
-        if score < 0.92 and answer.kaggle not in trained:
-            return True
         if kaggle_id == answer.kaggle:
+            return True
+        if index == 0 and score < threshold and answer.kaggle not in trained:
             return True
         return False
 
 
 correct = 0
 wrong = 0
+# threshold = 0.92
+threshold = 0.80
+
 for item in data:
     # print(item)
     image = os.path.basename(item['image'])
@@ -49,7 +52,7 @@ for item in data:
     answer = answers[image]
     tmp_correct = False
     for ii in range(0, 4):
-        tmp_correct = got_correct(matches, ii, answer)
+        tmp_correct = got_correct(matches, ii, answer, threshold)
         if tmp_correct:
             break
 
