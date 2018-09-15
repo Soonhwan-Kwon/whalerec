@@ -12,6 +12,16 @@ Originally the train.csv file had a bunch of entries tagged as "new_whale". I th
 
 ## Install
 
+Start ec2 instance:
+
+    auec2 -i model-trainer start
+
+Running [aws ec2 start-instances --instance-ids i-0e0cac704507a3875] ...
+
+And ssh in ...
+
+    ssh -i /Users/ken/dev/animalus/aws.pem ubuntu@52.43.89.148
+
 UPDATE: Don't need pandas anymore, so just install numpy. Of course installing pandas is still fine,
 we just won't be using it.
 
@@ -103,7 +113,7 @@ Filenames will be path starting setN/... and not just the name of the image_file
 
 Can create separate models with each set or one big model for all the sets.
 
-Isnt' the following line in id.py always going to create the same results? Cache?
+Isn't the following line in id.py always going to create the same results? Cache?
 At the very least we should cache the entire imageset and mappings objects. And we don't/won't need to load all the tagged dictionary.
 
     fknown = model.branch.predict_generator(FeatureGen(imageset, utils.hashes2images(mappings.h2p, known))), max_queue_size=20, workers=10, verbose=0)

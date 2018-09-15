@@ -1,6 +1,5 @@
 import os
 import random
-import csv
 import glob
 
 import globals
@@ -205,19 +204,6 @@ def read_cropped_image(imageset, img, augment):
     return img
 
 
-def getTrainData(filename, test=None):
-    tagged = {}
-    with open(filename, newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader, None)  # skip the headers
-        for row in reader:
-            tagged[row[0]] = row[1]
-
-    if test is not None:
-        tagged = {k: tagged[k] for k in list(tagged)[:test]}
-    return tagged
-
-
 def getMappings(setname):
     return deserialize_set(setname, globals.MAPPINGS)
 
@@ -311,7 +297,7 @@ def getTrainingHashes(w2hs):
     return train
 
 
-def prepMappings(imageset, tagged):
+def prepMappings(imageset, namedfiles):
     mappings = Mappings()
 
     h2ps = {}
@@ -340,11 +326,11 @@ def prepMappings(imageset, tagged):
         mappings.h2p[hash] = prefer(ps)
 
     h2ws = {}
-    for img, w in tagged.items():
-        h = imageset.infomap[img].hash
+    for file, name in namedfiles:
+        h = imageset.infomap[file].hash
         if h not in h2ws:
             h2ws[h] = []
-        if w not in h2ws[h]:
+        if name not in h2ws[h]:
             h2ws[h].append(w)
 
     for h, ws in h2ws.items():
