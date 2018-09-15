@@ -1,6 +1,7 @@
 import argparse
 import csv
 import os
+import glob
 
 import globals
 import utils
@@ -58,6 +59,5 @@ if imageset is None or mappings is None:
     if mappings is None:
         mappings = utils.prepMappings(imageset, namedfiles)
         utils.serialize_set(refset, mappings, globals.MAPPINGS)
-
 
 modelUtils.make_standard(refset, imageset, mappings, args.test)

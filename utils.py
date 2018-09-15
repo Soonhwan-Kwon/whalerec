@@ -331,7 +331,7 @@ def prepMappings(imageset, namedfiles):
         if h not in h2ws:
             h2ws[h] = []
         if name not in h2ws[h]:
-            h2ws[h].append(w)
+            h2ws[h].append(name)
 
     for h, ws in h2ws.items():
         if len(ws) > 1:
