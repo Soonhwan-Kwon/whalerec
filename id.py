@@ -58,22 +58,22 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--test', action="store_true")
 parser.add_argument('-s', '--stage', action="store", type=int)  # Number of steps to read the model at
 parser.add_argument('-m', '--min_matches', default=0, action="store", type=int)  # Number of steps to read the model at
-parser.add_argument('-n', '--name', dest='name')
+parser.add_argument('-r', '--refset', dest='refset')
 parser.add_argument('-D' '--images_dir', dest='imagedir')
-parser.add_argument('-f', '--file', dest="file")
+parser.add_argument('-f', '--image_file', dest="imagefile")
 parser.add_argument('-o', '--output')
 parser.add_argument('--threshold', dest="threshold", default=0.99, type=float)
 args = parser.parse_args()
 
-setname = args.name
+refset = args.refset
 
-if args.file:
-    submit = [args.file]
+if args.imagefile:
+    submit = [args.imagefile]
 else:
     submit = utils.getImageFiles(args.imagedir)
 
 
-model = modelUtils.get_standard(setname, args.stage)
+model = modelUtils.get_standard(refset, args.stage)
 
 if model is None:
     raise ValueError("Model does not exist")
@@ -91,15 +91,15 @@ if args.test:
 else:
     submitImageset = utils.prepImageSet(args.imagedir, submit)
 
-mappings = utils.getMappings(setname)
+mappings = utils.getMappings(refset)
 
 # Save fknown in model directory as pickle so that we only have to run this once.
 # Again, do the keys have to be sorted here? Saves time? If we cache it I guess that doesn't matter
 # Now run prep_id.py first on the trained model before running any id requests.
 # UPDATE: Getting None for deseriazilation. Switching back.
 
-# fknown = modelUtils.deserialize_fknown(setname, args.stage)
-fknown = modelUtils.make_fknown2(setname, model, mappings)
+# fknown = modelUtils.deserialize_fknown(refset, args.stage)
+fknown = modelUtils.make_fknown2(refset, model, mappings)
 
 fsubmit = model.branch.predict_generator(FeatureGen(submitImageset, submit), max_queue_size=20, workers=10, verbose=0)
 score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)

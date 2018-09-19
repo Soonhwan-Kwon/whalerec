@@ -1,6 +1,7 @@
 import os
 import random
 
+import globals
 import utils
 
 from keras import regularizers
@@ -16,7 +17,6 @@ from tqdm import tqdm
 import numpy as np
 
 from trainUtils import TrainingData
-from globals import IMG_SHAPE
 
 
 class Execution(object):
@@ -48,7 +48,7 @@ class FeatureGen(Sequence):
     def __getitem__(self, index):
         start = self.batch_size * index
         size = min(len(self.images) - start, self.batch_size)
-        a = np.zeros((size,) + IMG_SHAPE, dtype=K.floatx())
+        a = np.zeros((size,) + globals.IMG_SHAPE, dtype=K.floatx())
 
         for i in range(size):
             a[i, :, :, :] = utils.read_cropped_image(self.imageset, self.images[start + i], False)
@@ -119,7 +119,7 @@ def build(lr, l2, activation='sigmoid'):
     optim = Adam(lr=lr)
     kwargs = {'padding': 'same', 'kernel_regularizer': regul}
 
-    inp = Input(shape=IMG_SHAPE)  # 384x384x1
+    inp = Input(shape=globals.IMG_SHAPE)  # 384x384x1
     x = Conv2D(64, (9, 9), strides=2, activation='relu', **kwargs)(inp)
 
     x = MaxPooling2D((2, 2), strides=(2, 2))(x)  # 96x96x64
@@ -182,8 +182,8 @@ def build(lr, l2, activation='sigmoid'):
     ########################
     # Complete model is constructed by calling the branch model on each input image,
     # and then the head model on the resulting 512-vectors.
-    img_a = Input(shape=IMG_SHAPE)
-    img_b = Input(shape=IMG_SHAPE)
+    img_a = Input(shape=globals.IMG_SHAPE)
+    img_b = Input(shape=globals.IMG_SHAPE)
     xa = branch_model(img_a)
     xb = branch_model(img_b)
     x = head_model([xa, xb])
@@ -239,8 +239,8 @@ def make_fknown2(setname, model, mappings):
 
 def name_fknown(steps=None):
     if steps is None:
-        return "fknown"
-    return "fknown-%s" % str(steps)
+        return globals.FKNOWN
+    return "%s-%s" % (globals.FKNOWN, str(steps))
 
 
 def serialize_fknown(setname, fknown, steps=None):
