@@ -21,6 +21,10 @@ import pickle
 from tqdm import tqdm
 from imagehash import phash
 
+#
+# TODO: Put this in a yml config file.
+#
+INSTALL_DIR = "/opt/whalerec"
 
 #
 # Don't put these in debug since that has matlab stuff that I don't want to import in the general case
@@ -66,7 +70,7 @@ class Mappings(object):
 
 
 def set_directory(setname):
-    return os.path.join("sets", setname)
+    return os.path.join(INSTALL_DIR, "sets", setname)
 
 
 def serialize_set(setname, obj, objname):
