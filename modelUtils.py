@@ -325,7 +325,7 @@ def get_standard(setname, steps=None):
 
 
 def get_refset_info(refset, steps=None):
-    model = get_standard(refset, args.stage)
+    model = get_standard(refset, steps)
 
     if model is None:
         raise ValueError("Model does not exist")
@@ -337,7 +337,7 @@ def get_refset_info(refset, steps=None):
     # Now run prep_id.py first on the trained model before running any id requests.
     # UPDATE: Getting None for deseriazilation. Switching back.
 
-    fknown = deserialize_fknown(refset, args.stage)
+    fknown = deserialize_fknown(refset, steps)
     # fknown = make_fknown2(refset, model, mappings)
 
     return (model, mappings, fknown)
@@ -350,7 +350,7 @@ def get_refset_info(refset, steps=None):
 #
 def perform_id(model, mappings, fknown, refset, imgdir, serialize=False, threshold=0.99, min_matches=0):
     images = utils.getImageFiles(imgdir)
-    if args.serialize:
+    if serialize:
         imageset = utils.deserialize(imgdir, globals.IMAGESET)
         if imageset is None:
             imageset = utils.prepImageSet(imgdir, images)

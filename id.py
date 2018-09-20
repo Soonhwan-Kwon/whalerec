@@ -11,7 +11,7 @@ parser.add_argument('-m', '--min_matches', default=0, action="store", type=int) 
 parser.add_argument('-r', '--refset', dest='refset')
 parser.add_argument('-D' '--imgdir', dest='imgdir')
 parser.add_argument('-o', '--output')
-parser.add_argument('--threshold', defaul=0.99, type=float)
+parser.add_argument('--threshold', default=0.99, type=float)
 args = parser.parse_args()
 
 model, mappings, fknown = modelUtils.get_refset_info(args.refset, args.stage)
