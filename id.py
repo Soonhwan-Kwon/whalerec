@@ -16,7 +16,7 @@ args = parser.parse_args()
 
 model, mappings, fknown = modelUtils.get_refset_info(args.refset, args.stage)
 
-modelUtils.perform_id(model, mappings, fknown, args.refset, args.imgdir, args.serialize, args.threshold, args.min_matches)
+results = modelUtils.perform_id(model, mappings, fknown, args.refset, args.imgdir, args.serialize, args.threshold, args.min_matches)
 
 json_data = json.dumps(results)
 if args.output is None:

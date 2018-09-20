@@ -248,7 +248,7 @@ def serialize_fknown(setname, fknown, steps=None):
 
 
 def deserialize_fknown(setname, steps=None):
-    utils.deserialize_set(setname, name_fknown(steps))
+    return utils.deserialize_set(setname, name_fknown(steps))
 
 
 def make_steps(imageset, mappings, model, execution, train, steps, ampl):
