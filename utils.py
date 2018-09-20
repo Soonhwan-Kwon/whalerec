@@ -217,7 +217,7 @@ def getImageSet(setname):
 
 
 def getImageFiles(directory):
-    # make_glob('jpg')  # args.imagedir + '/*.[jJ][pP][gG]'
+    # make_glob('jpg')  # args.imgdir + '/*.[jJ][pP][gG]'
     def make_glob(extension):
         return directory + '/*.' + ''.join('[%s%s]' % (e.lower(), e.upper()) for e in extension)
 

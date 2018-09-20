@@ -227,7 +227,7 @@ def score_reshape(score, x, y=None):
 def make_fknown(setname, steps=None):
     mappings = utils.getMappings(setname)
     model = get_standard(setname, steps)
-    return make_known2(setname, model, mappings)
+    return make_fknown2(setname, model, mappings)
 
 
 def make_fknown2(setname, model, mappings):
@@ -322,6 +322,85 @@ def get_standard(setname, steps=None):
         return model
     else:
         raise ValueError("Model file not found.")
+
+
+def get_refset_info(refset, steps=None):
+    model = get_standard(refset, args.stage)
+
+    if model is None:
+        raise ValueError("Model does not exist")
+
+    mappings = utils.getMappings(refset)
+
+    # Save fknown in model directory as pickle so that we only have to run this once.
+    # Again, do the keys have to be sorted here? Saves time? If we cache it I guess that doesn't matter
+    # Now run prep_id.py first on the trained model before running any id requests.
+    # UPDATE: Getting None for deseriazilation. Switching back.
+
+    fknown = deserialize_fknown(refset, args.stage)
+    # fknown = make_fknown2(refset, model, mappings)
+
+    return (model, mappings, fknown)
+
+
+#
+# If we are testing then we may have wanted to save the prep work so that we can
+# repeat this iding very quickly. So we first check to see if we have already created
+# the imageset pickle. Thus the serialize flag.
+#
+def perform_id(model, mappings, fknown, refset, imgdir, serialize=False, threshold=0.99, min_matches=0):
+    images = utils.getImageFiles(imgdir)
+    if args.serialize:
+        imageset = utils.deserialize(imgdir, globals.IMAGESET)
+        if imageset is None:
+            imageset = utils.prepImageSet(imgdir, images)
+            utils.serialize(imgdir, imageset, globals.IMAGESET)
+    else:
+        imageset = utils.prepImageSet(imgdir, images)
+
+    fsubmit = model.branch.predict_generator(FeatureGen(imageset, images), max_queue_size=20, workers=10, verbose=0)
+    score = model.head.predict_generator(ScoreGen(fknown, fsubmit), max_queue_size=20, workers=10, verbose=0)
+    score = score_reshape(score, fknown, fsubmit)
+
+    # TODO: Check if this needs to be sorted. Saves time?
+    # I think the order might need to match that of the IDing process so that it matches the score array.
+    # Which would match this line in modelUtils
+    #     trainedData = utils.hashes2images(mappings.h2p, sorted(list(mappings.h2ws.keys())))
+    known = sorted(list(mappings.h2ws.keys()))
+
+    results = []
+    for ii, img in enumerate(tqdm(images)):
+        result = {}
+        result['image'] = img
+
+        whaleset = set()
+        scores = score[ii, :]
+        matches = []
+        for jj in list(reversed(np.argsort(scores))):
+            # if scores[jj] < threshold and new_whale not in whaleset:
+            #     pos[len(whalelist)] += 1
+            #     whaleset.add(new_whale)
+            #     whalelist.append(new_whale)
+                # if len(whalelist) == 5:
+                #     break
+
+            if scores[jj] < threshold and len(matches) >= min_matches:
+                break
+
+            hash = known[jj]
+            for whale in mappings.h2ws[hash]:
+                # assert whale != new_whale
+                if whale not in whaleset:
+                    whaleset.add(whale)
+                    match = {}
+                    match['name'] = whale
+                    # This needs to be float and not Decimal due to the limitations of the json encoder
+                    match['score'] = float(scores[jj])
+                    matches.append(match)
+        result['matches'] = matches
+        results.append(result)
+
+    return results
 
 
 def make_standard(setname, imageset, mappings, test=False):
