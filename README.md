@@ -35,7 +35,7 @@ For referencesets going forward ...
 
     pipenv run python train.py -r <refset> --imgdir <imgdir> --ingest-type <named_folders | second_dash | sn>
 
-... where ingest-type is one of three types of which named_folders is our main one. In this images are grouped into directories whose name is the name of the whale. In others the name of the whale is embedded in the image name.
+... where ingest-type is one of three types of which named_folders is our main one. In this type images are grouped into sub-directories of <imgdir> whose name is the name of the whale. In others the name of the whale is embedded in the image name and the images are in <imgdir> or any sub-dir of <imgdir>.
 
 ### Run ID
 
