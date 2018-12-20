@@ -37,11 +37,11 @@ For referencesets going forward ...
 
 ... where ingest-type is one of three types of which named_folders is our main one. In this type images are grouped into sub-directories of <imgdir> whose name is the name of the whale. In others the name of the whale is embedded in the image name and the images are in <imgdir> or any sub-dir of <imgdir>.
 
-### Run ID
+### Run Identification
 
     pipenv run python id.py -r <refset> -D <img_dir>
 
-... where <img_dir> is the directory containing the images that you want to try and identify.
+... where <img_dir> is the directory containing the images that you want to try and identify. In production mode images to be ID'ed are uploaded into a temp directory and then id'ed by the above command.
 
 ## TODO
 
