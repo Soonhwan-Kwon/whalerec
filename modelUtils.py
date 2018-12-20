@@ -348,7 +348,7 @@ def get_refset_info(refset, steps=None):
 # repeat this iding very quickly. So we first check to see if we have already created
 # the imageset pickle. Thus the serialize flag.
 #
-def perform_id(model, mappings, fknown, refset, imgdir, serialize=False, threshold=0.99, min_matches=0):
+def perform_id(model, mappings, fknown, imgdir, serialize=False, threshold=0.99, min_matches=0):
     images = utils.getImageFiles(imgdir)
     if serialize:
         imageset = utils.deserialize(imgdir, globals.IMAGESET)

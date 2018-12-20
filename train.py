@@ -15,7 +15,7 @@ parser.add_argument('-r', '--refset', required=True)
 parser.add_argument("--csvfile", default=None)
 
 parser.add_argument('--ingest-type', dest='ingest_type', default='second_dash',
-                    choices=['named_folders', 'second_dash', 'allied'])
+                    choices=['named_folders', 'second_dash', 'sn'])
 
 parser.add_argument('-t', '--test', action='store_true')
 args = parser.parse_args()
@@ -36,7 +36,7 @@ if imageset is None or mappings is None:
                 bits = os.path.basename(filepath).split("-")
                 return bits[0] + "-" + bits[1]
             extract_name = second_dash
-        elif args.ingest_type == 'allied':
+        elif args.ingest_type == 'sn':
             def allied(filepath):
                 return os.path.basename(filepath).split("sn")[0]
             extract_name = allied

@@ -4,7 +4,7 @@
 
 This is the winning entry by [Martin Piotte](https://www.kaggle.com/martinpiotte) to the [Humpback Whale Identification Challenge Kaggle Competition](https://www.kaggle.com/c/whale-categorization-playground/data). It has been reformatted by [crowmagnumb](https://github.com/crowmagnumb)
 
-Originally the train.csv file had a bunch of entries tagged as "new_whale". I think this was a mistake on Kaggle's part as Ted gave them a bunch of unidentified whales and they must have put some of them in the training set which makes no sense. Martin culled them out. I culled them from the csv file with ...
+Originally the train.csv file had a bunch of entries tagged as "new_whale". I think this was a mistake. We gave them a bunch of unidentified whales and some of them must have gotten into the training set. Martin culled them out. I culled them from the csv file with ...
 
     cat trainORIG.csv | grep -v new_whale > train.csv
 
@@ -23,13 +23,25 @@ Originally the train.csv file had a bunch of entries tagged as "new_whale". I th
     pipenv install keras
     pipenv install keras_tqdm
 
-### Run
+### Train
 
-    python id.py -d ~/kaggle
+For kaggle competition ...
 
-... or this if you want to ignore warnings ...
+    pipenv run python train.py -r <refset> --csvfile <csvfile>
 
-    python -W ignore id.py -d ~/kaggle
+<refset> is just the name you want to identify it with. e.g. "humpbacks" and <csvfile> is the file containing the training data mapping of whale to image file.
+
+For referencesets going forward ...
+
+    pipenv run python train.py -r <refset> --imgdir <imgdir> --ingest-type <named_folders | second_dash | sn>
+
+... where ingest-type is one of three types of which named_folders is our main one. In this images are grouped into directories whose name is the name of the whale. In others the name of the whale is embedded in the image name.
+
+### Run ID
+
+    pipenv run python id.py -r <refset> -D <img_dir>
+
+... where <img_dir> is the directory containing the images that you want to try and identify.
 
 ## TODO
 

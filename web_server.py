@@ -10,7 +10,7 @@ modelInfos = {}
 
 model, mappings, fknown = modelUtils.get_refset_info(args.refset, args.stage)
 
-modelUtils.perform_id(model, mappings, fknown, args.refset, args.imgdir, args.serialize, args.threshold, args.min_matches)
+modelUtils.perform_id(model, mappings, fknown, args.imgdir, args.serialize, args.threshold, args.min_matches)
 
 
 def get_model_info(refset):
@@ -32,7 +32,7 @@ class IdentifyHandler(tornado.web.RequestHandler):
         imageset = self.get_argument("imageset")
 
         model, mappings, fknown = get_model_info(refset)
-        results = modelUtils.perform_id(model, mappings, fknown, refset, imgdir)
+        results = modelUtils.perform_id(model, mappings, fknown, imgdir)
         self.write(json.dumps(results))
 
 
