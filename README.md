@@ -2,7 +2,7 @@
 
 ## Info
 
-This is the winning entry by [Martin Piotte](https://www.kaggle.com/martinpiotte) to the [Humpback Whale Identification Challenge Kaggle Competition](https://www.kaggle.com/c/whale-categorization-playground/data). It has been reformmatted by [crowmagnumb](https://github.com/crowmagnumb)
+This is the winning entry by [Martin Piotte](https://www.kaggle.com/martinpiotte) to the [Humpback Whale Identification Challenge Kaggle Competition](https://www.kaggle.com/c/whale-categorization-playground/data). It has been reformatted by [crowmagnumb](https://github.com/crowmagnumb)
 
 Originally the train.csv file had a bunch of entries tagged as "new_whale". I think this was a mistake on Kaggle's part as Ted gave them a bunch of unidentified whales and they must have put some of them in the training set which makes no sense. Martin culled them out. I culled them from the csv file with ...
 
